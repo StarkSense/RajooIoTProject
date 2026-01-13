@@ -1,0 +1,271 @@
+import sqlite3
+import random
+import time
+from datetime import datetime
+
+
+
+conn = sqlite3.connect("blownfilm.db")
+cursor = conn.cursor()
+
+
+tables = ["machine_overview", "winder", "layers", "extruder", "die_zones", "map_profile", "lip_profile", "gauge_control"]
+for table in tables:
+    cursor.execute(f"DROP TABLE IF EXISTS {table}")
+conn.commit()
+
+
+# CREATE TABLES
+
+cursor.executescript("""
+CREATE TABLE machine_overview (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    total_set_output REAL,
+    total_actual_output REAL,
+    density REAL,
+    gsm REAL,
+    lay_flat REAL,
+    ibc_in_temp REAL,
+    ibc_out_temp REAL,
+    set_line_speed REAL,
+    actual_line_speed REAL,
+    set_thickness REAL,
+    actual_thickness REAL,
+    nominal_thickness REAL,
+    max_thickness REAL,
+    min_thickness REAL,
+    avg_thickness REAL,
+    gbr_position REAL
+);
+
+CREATE TABLE winder (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    winder_name TEXT,
+    totalizer REAL,
+    roll_length REAL,
+    roll_dia REAL
+);
+
+CREATE TABLE layers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    layer_name TEXT,
+    speed_rpm REAL,
+    set_thickness REAL,
+    actual_thickness REAL,
+    yield_rate REAL,
+    melt_temperature REAL,
+    melt_pressure REAL
+);
+
+CREATE TABLE extruder (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    extruder_name TEXT,
+    section_type TEXT,
+    section_name TEXT,
+    set_percent REAL,
+    actual_percent REAL,
+    density REAL,
+    set_kg REAL,
+    actual_kg REAL,
+    total_kg REAL,
+    set_temperature REAL,
+    actual_temperature REAL
+);
+
+CREATE TABLE die_zones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    zone_name TEXT,
+    set_temperature REAL,
+    actual_temperature REAL,
+    heater_status TEXT,
+    alarm_flag TEXT
+);
+
+CREATE TABLE map_profile (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    zone_id INTEGER,
+    set_air_pressure REAL,
+    actual_air_pressure REAL,
+    air_flow_rate REAL,
+    deviation REAL,
+    pid_output REAL
+);
+
+CREATE TABLE lip_profile (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    zone_id INTEGER,
+    set_lip_gap REAL,
+    actual_lip_gap REAL,
+    lip_temp REAL,
+    melt_pressure REAL,
+    actuator_value REAL,
+    deviation REAL
+);
+
+CREATE TABLE gauge_control (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    max_thickness REAL,
+    min_thickness REAL,
+    avg_thickness REAL,
+    gbr_ratio REAL,
+    gbr_percent REAL
+);
+""")
+conn.commit()
+
+
+# DATA GENERATION FUNCTIONS
+
+def generate_machine_data():
+    total_set_output = random.uniform(80, 120)
+    total_actual_output = total_set_output * random.uniform(0.95, 1.05)
+    density = random.uniform(0.915, 0.935)
+    gsm = random.uniform(20, 80)
+    lay_flat = random.uniform(1000, 2500)
+    ibc_in_temp = random.uniform(25, 35)
+    ibc_out_temp = ibc_in_temp + random.uniform(5, 10)
+    set_line_speed = random.uniform(30, 60)
+    actual_line_speed = set_line_speed * random.uniform(0.95, 1.05)
+    set_thickness = random.uniform(40, 80)
+    actual_thickness = set_thickness * random.uniform(0.95, 1.05)
+    nominal_thickness = random.uniform(45, 75)
+    max_thickness = actual_thickness * random.uniform(1.02, 1.08)
+    min_thickness = actual_thickness * random.uniform(0.92, 0.98)
+    avg_thickness = (max_thickness + min_thickness) / 2
+    gbr_position = random.uniform(1.0, 3.0)
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return (timestamp, total_set_output, total_actual_output, density, gsm, lay_flat,
+            ibc_in_temp, ibc_out_temp, set_line_speed, actual_line_speed,
+            set_thickness, actual_thickness, nominal_thickness,
+            max_thickness, min_thickness, avg_thickness, gbr_position)
+
+def generate_winder_data(winder_name):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    totalizer = random.uniform(1000, 10000)
+    roll_length = random.uniform(500, 3000)
+    roll_dia = random.uniform(150, 350)
+    return (timestamp, winder_name, totalizer, roll_length, roll_dia)
+
+def generate_layer_data(layer_name):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    speed_rpm = random.uniform(20, 80)
+    set_thickness = random.uniform(10, 40)
+    actual_thickness = set_thickness * random.uniform(0.95, 1.05)
+    yield_rate = random.uniform(20, 50)
+    melt_temperature = random.uniform(180, 240)
+    melt_pressure = random.uniform(100, 250)
+    return (timestamp, layer_name, speed_rpm, set_thickness, actual_thickness,
+            yield_rate, melt_temperature, melt_pressure)
+
+def generate_extruder_data(extruder_name, section_type, section_name):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    set_percent = random.uniform(5, 40)
+    actual_percent = set_percent * random.uniform(0.95, 1.05)
+    density = random.uniform(0.91, 0.94)
+    set_kg = random.uniform(5, 50)
+    actual_kg = set_kg * random.uniform(0.95, 1.05)
+    total_kg = actual_kg * random.uniform(10, 50)
+    set_temp = random.uniform(180, 250) if any(tag in section_name for tag in ["BZ", "ADP", "S.C"]) else None
+    actual_temp = set_temp * random.uniform(0.95, 1.05) if set_temp else None
+    return (timestamp, extruder_name, section_type, section_name,
+            set_percent, actual_percent, density, set_kg, actual_kg, total_kg,
+            set_temp, actual_temp)
+
+def generate_die_zone_data(zone_name):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    set_temp = random.uniform(190, 230)
+    actual_temp = set_temp * random.uniform(0.95, 1.05)
+    heater_status = "ON" if actual_temp < set_temp * 1.02 else "OFF"
+    alarm_flag = "HIGH_TEMP" if actual_temp > set_temp * 1.05 else ("LOW_TEMP" if actual_temp < set_temp * 0.95 else "NORMAL")
+    return (timestamp, zone_name, set_temp, actual_temp, heater_status, alarm_flag)
+
+def generate_map_profile_data(zone_id):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    set_air_pressure = random.uniform(0.5, 2.5)
+    actual_air_pressure = set_air_pressure * random.uniform(0.95, 1.05)
+    air_flow_rate = random.uniform(100, 300)
+    deviation = ((actual_air_pressure - set_air_pressure) / set_air_pressure) * 100
+    pid_output = random.uniform(0, 100)
+    return (timestamp, zone_id, set_air_pressure, actual_air_pressure, air_flow_rate, deviation, pid_output)
+
+def generate_lip_profile_data(zone_id):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    set_lip_gap = random.uniform(300, 500)
+    actual_lip_gap = set_lip_gap * random.uniform(0.95, 1.05)
+    lip_temp = random.uniform(180, 240)
+    melt_pressure = random.uniform(100, 200)
+    actuator_value = random.uniform(0, 100)
+    deviation = ((actual_lip_gap - set_lip_gap) / set_lip_gap) * 100
+    return (timestamp, zone_id, set_lip_gap, actual_lip_gap, lip_temp, melt_pressure, actuator_value, deviation)
+
+def generate_gbr_data():
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    max_thickness = random.uniform(45, 80)
+    min_thickness = max_thickness * random.uniform(0.90, 0.99)
+    avg_thickness = (max_thickness + min_thickness) / 2
+    gbr_ratio = max_thickness / min_thickness
+    gbr_percent = ((max_thickness - min_thickness) / avg_thickness) * 100
+    return (timestamp, max_thickness, min_thickness, avg_thickness, gbr_ratio, gbr_percent)
+
+
+
+components = ["LL.JF1910", "UV", "LDJ24FS040", "MLLDP1018", "A.O+PPA", "Silver"]
+zones = {
+    "Extruder A": ["BZ-1A", "BZ-2A", "BZ-3A", "BZ-4A", "S.C-A", "ADP-A", "ADP-1A", "ADP-2A"],
+    "Extruder B": ["BZ-1B", "BZ-2B", "BZ-3B", "BZ-4B", "S.C-B", "ADP-B", "ADP-1B", "ADP-2B"],
+    "Extruder C": ["BZ-1C", "BZ-2C", "BZ-3C", "BZ-4C", "S.C-C", "ADP-C", "ADP-1C", "ADP-2C"]
+}
+die_zones = [f"DZ-{i}" for i in range(1, 13)]
+map_zones = list(range(1, 17))
+lip_zones = list(range(1, 37))
+
+
+# MAIN 
+
+print(" Data generation started..")
+
+try:
+    while True:
+        cursor.execute("INSERT INTO machine_overview VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       generate_machine_data())
+
+        for w in ["Winder 1", "Winder 2"]:
+            cursor.execute("INSERT INTO winder VALUES (NULL, ?, ?, ?, ?, ?)", generate_winder_data(w))
+
+        for l in ["Layer 1", "Layer 2", "Layer 3"]:
+            cursor.execute("INSERT INTO layers VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)", generate_layer_data(l))
+
+        for extruder in ["Extruder A", "Extruder B", "Extruder C"]:
+            for comp in components:
+                cursor.execute("INSERT INTO extruder VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               generate_extruder_data(extruder, "Component", comp))
+            for zone in zones[extruder]:
+                cursor.execute("INSERT INTO extruder VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               generate_extruder_data(extruder, "Zone", zone))
+
+        for dz in die_zones:
+            cursor.execute("INSERT INTO die_zones VALUES (NULL, ?, ?, ?, ?, ?, ?)", generate_die_zone_data(dz))
+
+        for zone in map_zones:
+            cursor.execute("INSERT INTO map_profile VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)", generate_map_profile_data(zone))
+
+        for zone in lip_zones:
+            cursor.execute("INSERT INTO lip_profile VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)", generate_lip_profile_data(zone))
+
+        cursor.execute("INSERT INTO gauge_control VALUES (NULL, ?, ?, ?, ?, ?, ?)", generate_gbr_data())
+
+        conn.commit()
+        print(f"✅ Data inserted successfully at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        time.sleep(60)
+
+except KeyboardInterrupt:
+    print("\n Data generation stopped.")
+    conn.close()
