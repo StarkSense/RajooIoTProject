@@ -8,101 +8,29 @@
 
       <div class="menu-section">
         <div class="menu-title">LAYERS</div>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer1') }"
-          @click="goToLayer('/layer1')"
-        >
-          Layer 1
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer2') }"
-          @click="goToLayer('/layer2')"
-        >
-          Layer 2
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer3') }"
-          @click="goToLayer('/layer3')"
-        >
-          Layer 3
-        </button>
+        <button class="menu-item" :class="{ active: isActive('/layer1') }" @click="goToLayer('/layer1')">Layer 1</button>
+        <button class="menu-item" :class="{ active: isActive('/layer2') }" @click="goToLayer('/layer2')">Layer 2</button>
+        <button class="menu-item" :class="{ active: isActive('/layer3') }" @click="goToLayer('/layer3')">Layer 3</button>
       </div>
 
       <div class="menu-section">
         <div class="menu-title">EXTRUDER</div>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/extruder1') }"
-          @click="goTo('/extruder1')"
-        >
-          Extruder 1
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/extruder2') }"
-          @click="goTo('/extruder2')"
-        >
-          Extruder 2
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/extruder3') }"
-          @click="goTo('/extruder3')"
-        >
-          Extruder 3
-        </button>
+        <button class="menu-item" :class="{ active: isActive('/extruder1') }" @click="goTo('/extruder1')">Extruder 1</button>
+        <button class="menu-item" :class="{ active: isActive('/extruder2') }" @click="goTo('/extruder2')">Extruder 2</button>
+        <button class="menu-item" :class="{ active: isActive('/extruder3') }" @click="goTo('/extruder3')">Extruder 3</button>
       </div>
-
 
       <div class="menu-section">
         <div class="menu-title">WINDER</div>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/winder1') }"
-          @click="goTo('/winder1')"
-        >
-          Winder 1
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/winder2') }"
-          @click="goTo('/winder2')"
-        >
-          Winder 2
-        </button>
+        <button class="menu-item" :class="{ active: isActive('/winder1') }" @click="goTo('/winder1')">Winder 1</button>
+        <button class="menu-item" :class="{ active: isActive('/winder2') }" @click="goTo('/winder2')">Winder 2</button>
       </div>
 
       <div class="menu-section">
         <div class="menu-title">UTILITIES</div>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/reports') }"
-          @click="goTo('/reports')"
-        >
-          Reports
-        </button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/material-utilization') }"
-          @click="goTo('/material-utilization')"
-        >
-          Material Utilization
-        </button>
+        <button class="menu-item" :class="{ active: isActive('/reports') }" @click="goTo('/reports')">Reports</button>
+        <button class="menu-item" :class="{ active: isActive('/material-utilization') }" @click="goTo('/material-utilization')">Material Utilization</button>
       </div>
-
     </aside>
 
     <!-- MAIN -->
@@ -111,16 +39,9 @@
       <header class="topbar">
         <h1>THREE LAYER BLOWN FILM LINE</h1>
         <div class="top-right">
-          <span class="pill dark">
-            {{ currentDate }}<br />
-            {{ currentTime }}
-          </span>
+          <span class="pill dark">{{ currentDate }}<br />{{ currentTime }}</span>
           <img src="/notification.png" class="notification-icon" />
-          <img
-            src="/power-button.png"
-            class="power-icon"
-            @click="handleLogout"
-          />
+          <img src="/power-button.png" class="power-icon" @click="handleLogout" />
         </div>
       </header>
 
@@ -130,31 +51,14 @@
         <section class="panel left-panel">
           <h2>MACHINE OVERVIEW PANEL</h2>
 
-          <!-- STATS -->
           <div class="stats">
-            <div class="stat">
-              Total Set Output
-              <span>{{ total_set_output.toFixed(2) }} kg/hr</span>
-            </div>
-            <div class="stat">
-              Total Actual Output
-              <span>{{ total_actual_output.toFixed(2) }} kg/hr</span>
-            </div>
-            <div class="stat">
-              Density
-              <span>{{ density.toFixed(2) }} g/cm³</span>
-            </div>
-            <div class="stat">
-              GSM
-              <span>{{ gsm.toFixed(2) }}</span>
-            </div>
-            <div class="stat">
-              Lay Flat
-              <span>{{ lay_flat.toFixed(2) }} mm</span>
-            </div>
+            <div class="stat">Total Set Output<span>{{ total_set_output.toFixed(2) }} kg/hr</span></div>
+            <div class="stat">Total Actual Output<span>{{ total_actual_output.toFixed(2) }} kg/hr</span></div>
+            <div class="stat">Density<span>{{ density.toFixed(2) }} g/cm³</span></div>
+            <div class="stat">GSM<span>{{ gsm.toFixed(2) }}</span></div>
+            <div class="stat">Lay Flat<span>{{ lay_flat.toFixed(2) }} mm</span></div>
           </div>
 
-          <!-- LIP + MAP -->
           <div class="dual-graph-row">
             <div class="row graph-row">
               <div class="row-title">LIP PROFILE</div>
@@ -166,7 +70,6 @@
             </div>
           </div>
 
-          <!-- IBC + SPEED -->
           <div class="dual-graph-row">
             <div class="row graph-row">
               <div class="row-title">IBC TEMP IN / OUT</div>
@@ -178,24 +81,16 @@
             </div>
           </div>
 
-          <!-- DIE TEMP ZONES -->
+          <!-- DIE TEMP -->
           <div class="row die-zone-card">
             <div class="row-title">DIE TEMPERATURE ZONE WISE</div>
-
             <div class="die-zone-grid">
-              <div
-                v-for="zone in die_temp_zones"
-                :key="zone.zone"
-                class="die-zone"
-                :class="zoneStatus(zone)"
-              >
+              <div v-for="zone in die_temp_zones" :key="zone.zone" class="die-zone" :class="zoneStatus(zone)">
                 <div class="zone-name">{{ zone.zone }}</div>
                 <div class="zone-values">
-                  <div>SET <span>{{ zone.set.toFixed(1) }}°C</span></div>
-                  <div>ACT <span>{{ zone.actual.toFixed(1) }}°C</span></div>
-                  <div class="delta">
-                    Δ {{ (zone.actual - zone.set).toFixed(1) }}°C
-                  </div>
+                  <div>SET {{ zone.set.toFixed(1) }}°C</div>
+                  <div>ACT {{ zone.actual.toFixed(1) }}°C</div>
+                  <div class="delta">Δ {{ (zone.actual - zone.set).toFixed(1) }}°C</div>
                 </div>
               </div>
             </div>
@@ -206,10 +101,7 @@
             <div class="row-title">THICKNESS</div>
             <div class="thickness-content-full">
               <div class="thickness-graph-full">
-                <Line
-                  :data="thicknessChartData"
-                  :options="thicknessChartOptions"
-                />
+                <Line :data="thicknessChartData" :options="thicknessChartOptions" />
               </div>
               <div class="thickness-info-full">
                 <div><b>Set Thickness</b> : {{ thickness_stats.set }}</div>
@@ -255,6 +147,10 @@ import {
   Legend
 } from "chart.js";
 
+/* ================= GLOBAL CHART SAFETY ================= */
+ChartJS.defaults.responsive = true;
+ChartJS.defaults.maintainAspectRatio = false;
+
 ChartJS.register(
   LineElement,
   BarElement,
@@ -275,12 +171,321 @@ export default {
       currentTime: "",
       socket: null,
 
+      /* ================= KPIs ================= */
       total_set_output: 0,
       total_actual_output: 0,
       density: 0,
       gsm: 0,
       lay_flat: 0,
 
+      /* ================= RAW DATA ================= */
+      lip_profile: [],
+      map_profile: [],
+      ibc_temp_in: [],
+      ibc_temp_out: [],
+      speed_set: [],
+      speed_actual: [],
+      die_temp_zones: [],
+      thickness_trend: [],
+
+      thickness_stats: {
+        set: 0,
+        avg: 0,
+        nominal: 0,
+        max: 0,
+        min: 0,
+        gbr: 0
+      }
+    };
+  },
+
+  mounted() {
+    this.updateClock();
+    setInterval(this.updateClock, 1000);
+
+    this.socket = io("http://localhost:5000", {
+      transports: ["websocket"]
+    });
+
+    this.socket.on("telemetry_update", (data) => {
+      /* ================= KPIs ================= */
+      if (data.machine_overview) {
+        const m = data.machine_overview;
+        this.total_set_output = Number(m.total_set_output || 0);
+        this.total_actual_output = Number(m.total_actual_output || 0);
+        this.density = Number(m.density || 0);
+        this.gsm = Number(m.gsm || 0);
+        this.lay_flat = Number(m.lay_flat || 0);
+      }
+
+      /* ================= PROFILES ================= */
+      this.lip_profile = data.lip_profile ?? [];
+      this.map_profile = data.map_profile ?? [];
+
+      /* ================= TIME-SERIES ================= */
+      this.ibc_temp_in = this.toXYWithTime(data.ibc_temp?.in ?? []);
+      this.ibc_temp_out = this.toXYWithTime(data.ibc_temp?.out ?? []);
+      this.speed_set = this.toXYWithTime(data.speed_trend?.set ?? []);
+      this.speed_actual = this.toXYWithTime(data.speed_trend?.actual ?? []);
+
+      /* ================= DIE TEMP ================= */
+      this.die_temp_zones = data.die_temp_zones ?? [];
+
+      /* ================= THICKNESS ================= */
+      if (data.thickness) {
+        this.thickness_trend = this.toXYWithTime(data.thickness.trend ?? []);
+        this.thickness_stats = {
+          ...this.thickness_stats,
+          ...data.thickness.stats
+        };
+      }
+    });
+  },
+
+  methods: {
+    /* ===== Convert values → timestamps ===== */
+    toXYWithTime(series) {
+      const now = new Date();
+      return series.map((v, i) => {
+        const t = new Date(now.getTime() - (series.length - i - 1) * 10000);
+        return {
+          x: t.toLocaleTimeString("en-GB"),
+          y: v
+        };
+      });
+    },
+
+    /* ===== Navigation ===== */
+    goToLayer(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+    goTo(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+    isActive(path) {
+      return this.$route.path === path;
+    },
+
+    /* ===== Clock ===== */
+    updateClock() {
+      const now = new Date();
+      this.currentDate = now.toLocaleDateString("en-GB");
+      this.currentTime = now.toLocaleTimeString("en-GB");
+    },
+
+    zoneStatus(zone) {
+      const diff = Math.abs(zone.actual - zone.set);
+      if (diff <= 2) return "ok";
+      if (diff <= 5) return "warn";
+      return "alert";
+    },
+
+    handleLogout() {
+      if (this.socket) this.socket.disconnect();
+      localStorage.removeItem("token");
+      this.$router.replace("/");
+    },
+
+    /* ================= CHART OPTIONS ================= */
+    commonOptions(xLabel, yLabel, legend = false) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        resizeDelay: 150,
+
+        plugins: {
+          legend: legend
+            ? {
+                labels: {
+                  color: "#e6f7fb",
+                  font: { size: 14, weight: "600" }
+                }
+              }
+            : { display: false },
+
+          tooltip: {
+            backgroundColor: "rgba(10,25,35,0.95)",
+            titleColor: "#ffffff",
+            bodyColor: "#e6f7fb",
+            borderColor: "#7fdcff",
+            borderWidth: 1
+          }
+        },
+
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: xLabel,
+              color: "#ffffff",
+              font: { size: 14, weight: "600" }
+            },
+            ticks: {
+              color: "#dff6ff",
+              font: { size: 12 }
+            },
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: yLabel,
+              color: "#ffffff",
+              font: { size: 14, weight: "600" }
+            },
+            ticks: {
+              color: "#dff6ff",
+              font: { size: 12 }
+            },
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            }
+          }
+        }
+      };
+    }
+  },
+
+  computed: {
+    /* ================= DATASETS ================= */
+    lipChartData() {
+      return {
+        labels: this.lip_profile.map(p => p.x),
+        datasets: [{
+          data: this.lip_profile.map(p => p.y),
+          borderColor: "#7fdcff",
+          borderWidth: 2.5,
+          tension: 0.35,
+          pointRadius: 3
+        }]
+      };
+    },
+
+    mapChartData() {
+      return {
+        labels: this.map_profile.map(p => p.x),
+        datasets: [{
+          data: this.map_profile.map(p => p.y),
+          borderColor: "#81c784",
+          borderWidth: 2.5,
+          tension: 0.35,
+          pointRadius: 3
+        }]
+      };
+    },
+
+    ibcChartData() {
+      return {
+        labels: this.ibc_temp_in.map(p => p.x),
+        datasets: [
+          { label: "IBC IN", data: this.ibc_temp_in.map(p => p.y) },
+          { label: "IBC OUT", data: this.ibc_temp_out.map(p => p.y) }
+        ]
+      };
+    },
+
+    speedChartData() {
+      return {
+        labels: this.speed_set.map(p => p.x),
+        datasets: [
+          { label: "SET", data: this.speed_set.map(p => p.y), borderColor: "#4dd0e1" },
+          { label: "ACT", data: this.speed_actual.map(p => p.y), borderColor: "#ff7043" }
+        ]
+      };
+    },
+
+    thicknessChartData() {
+      const labels = this.thickness_trend.map(p => p.x);
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Actual Thickness",
+            data: this.thickness_trend.map(p => p.y),
+            borderColor: "#ff7043",
+            borderWidth: 3,
+            tension: 0.35
+          },
+          {
+            label: "Set Thickness",
+            data: labels.map(() => this.thickness_stats.set),
+            borderColor: "#4dd0e1",
+            borderDash: [6, 4]
+          }
+        ]
+      };
+    },
+
+    /* ================= OPTIONS ================= */
+    lipChartOptions() {
+      return this.commonOptions("Die Width", "Thickness (µm)");
+    },
+    mapChartOptions() {
+      return this.commonOptions("Die Width", "Thickness (µm)");
+    },
+    ibcChartOptions() {
+      return this.commonOptions("Time (HH:MM:SS)", "Temperature (°C)", true);
+    },
+    speedChartOptions() {
+      return this.commonOptions("Time (HH:MM:SS)", "Speed", true);
+    },
+    thicknessChartOptions() {
+      return this.commonOptions("Time (HH:MM:SS)", "Thickness (µm)");
+    }
+  }
+};
+</script>
+
+
+<!-- <script>
+import { io } from "socket.io-client";
+import { Line, Bar } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  LineElement,
+  BarElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+/* ================= GLOBAL CHART SAFETY ================= */
+ChartJS.defaults.responsive = true;
+ChartJS.defaults.maintainAspectRatio = false;
+
+ChartJS.register(
+  LineElement,
+  BarElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
+
+export default {
+  name: "DashboardMain",
+  components: { Line, Bar },
+
+  data() {
+    return {
+      currentDate: "",
+      currentTime: "",
+      socket: null,
+
+      /* ================= KPIs ================= */
+      total_set_output: 0,
+      total_actual_output: 0,
+      density: 0,
+      gsm: 0,
+      lay_flat: 0,
+
+      /* ================= TELEMETRY ================= */
       lip_profile: [],
       map_profile: [],
       ibc_temp_in: [],
@@ -309,24 +514,32 @@ export default {
     });
 
     this.socket.on("telemetry_update", (data) => {
-      this.total_set_output =
-        data.total_set_output ?? this.total_set_output;
-      this.total_actual_output =
-        data.total_actual_output ?? this.total_actual_output;
-      this.density = data.density ?? this.density;
-      this.gsm = data.gsm ?? this.gsm;
-      this.lay_flat = data.lay_flat ?? this.lay_flat;
+      /* ================= MACHINE OVERVIEW ================= */
+      if (data.machine_overview) {
+        const m = data.machine_overview;
+        this.total_set_output = Number(m.total_set_output || 0);
+        this.total_actual_output = Number(m.total_actual_output || 0);
+        this.density = Number(m.density || 0);
+        this.gsm = Number(m.gsm || 0);
+        this.lay_flat = Number(m.lay_flat || 0);
+      }
 
+      /* ================= PROFILES ================= */
       this.lip_profile = data.lip_profile ?? [];
       this.map_profile = data.map_profile ?? [];
-      this.ibc_temp_in = data.ibc_temp?.in ?? [];
-      this.ibc_temp_out = data.ibc_temp?.out ?? [];
-      this.speed_set = data.speed_trend?.set ?? [];
-      this.speed_actual = data.speed_trend?.actual ?? [];
+
+      /* ================= TIME SERIES ================= */
+      this.ibc_temp_in = this.toXY(data.ibc_temp?.in ?? []);
+      this.ibc_temp_out = this.toXY(data.ibc_temp?.out ?? []);
+      this.speed_set = this.toXY(data.speed_trend?.set ?? []);
+      this.speed_actual = this.toXY(data.speed_trend?.actual ?? []);
+
+      /* ================= DIE TEMPERATURE ================= */
       this.die_temp_zones = data.die_temp_zones ?? [];
 
+      /* ================= THICKNESS ================= */
       if (data.thickness) {
-        this.thickness_trend = data.thickness.trend ?? [];
+        this.thickness_trend = this.toXY(data.thickness.trend ?? []);
         this.thickness_stats = {
           ...this.thickness_stats,
           ...data.thickness.stats
@@ -336,24 +549,11 @@ export default {
   },
 
   methods: {
-    /* ========== SIDEBAR NAVIGATION (ADDED) ========== */
-    goToLayer(path) {
-      if (this.$route.path !== path) {
-        this.$router.push(path);
-      }
-    },
-    
-    goTo(path) {
-      if (this.$route.path !== path) {
-        this.$router.push(path);
-      }
+    /* ================= HELPERS ================= */
+    toXY(series) {
+      return series.map((v, i) => ({ x: i + 1, y: v }));
     },
 
-    isActive(path) {
-      return this.$route.path === path;
-    },
-
-    /* ========== CLOCK ========== */
     updateClock() {
       const now = new Date();
       this.currentDate = now.toLocaleDateString("en-GB");
@@ -367,52 +567,86 @@ export default {
       return "alert";
     },
 
-    /* ========== LOGOUT ========== */
     handleLogout() {
-      try {
-        if (this.socket) {
-          this.socket.disconnect();
-          this.socket = null;
-        }
-
-        localStorage.removeItem("token");
-        this.$router.replace("/");
-      } catch (err) {
-        console.error("Logout failed:", err);
-        window.location.href = "/";
-      }
+      if (this.socket) this.socket.disconnect();
+      localStorage.removeItem("token");
+      this.$router.replace("/");
     },
 
-    /* ========== COMMON CHART OPTIONS ========== */
-    commonOptions(x, y, legend = false) {
+    /* ================= NAVIGATION ================= */
+    goToLayer(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+    goTo(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+    isActive(path) {
+      return this.$route.path === path;
+    },
+
+    /* ================= CHART OPTIONS (READABLE) ================= */
+    commonOptions(xLabel, yLabel, showLegend = false) {
       return {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        layout: { padding: { bottom: 20 } },
+        resizeDelay: 150,
+
         plugins: {
-          legend: legend
-            ? { labels: { color: "#e6f7fb", font: { size: 11 } } }
-            : { display: false }
+          legend: showLegend
+            ? {
+                labels: {
+                  color: "#e6f7fb",
+                  font: { size: 14, weight: "600" },
+                  boxWidth: 18,
+                  padding: 16
+                }
+              }
+            : { display: false },
+
+          tooltip: {
+            backgroundColor: "rgba(15,35,50,0.95)",
+            titleColor: "#ffffff",
+            bodyColor: "#e6f7fb",
+            borderColor: "#7fdcff",
+            borderWidth: 1,
+            titleFont: { size: 14, weight: "600" },
+            bodyFont: { size: 13 }
+          }
         },
+
         scales: {
           x: {
             title: {
-              display: !!x,
-              text: x,
-              color: "#e6f7fb",
-              font: { size: 12, weight: "600" }
+              display: true,
+              text: xLabel,
+              color: "#ffffff",
+              font: { size: 14, weight: "600" }
             },
-            ticks: { color: "#cfefff", font: { size: 11 } }
+            ticks: {
+              color: "#dff6ff",
+              font: { size: 12, weight: "500" },
+              padding: 6
+            },
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            }
           },
           y: {
             title: {
-              display: !!y,
-              text: y,
-              color: "#e6f7fb",
-              font: { size: 12, weight: "600" }
+              display: true,
+              text: yLabel,
+              color: "#ffffff",
+              font: { size: 14, weight: "600" }
             },
-            ticks: { color: "#cfefff", font: { size: 11 } }
+            ticks: {
+              color: "#dff6ff",
+              font: { size: 12, weight: "500" },
+              padding: 6
+            },
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            }
           }
         }
       };
@@ -420,31 +654,32 @@ export default {
   },
 
   computed: {
+    /* ================= DATASETS ================= */
     lipChartData() {
       return {
         labels: this.lip_profile.map(p => p.x),
-        datasets: [
-          {
-            data: this.lip_profile.map(p => p.y),
-            borderColor: "#7fdcff",
-            tension: 0.35,
-            pointRadius: 2
-          }
-        ]
+        datasets: [{
+          data: this.lip_profile.map(p => p.y),
+          borderColor: "#7fdcff",
+          borderWidth: 2.5,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: "#ffffff"
+        }]
       };
     },
 
     mapChartData() {
       return {
         labels: this.map_profile.map(p => p.x),
-        datasets: [
-          {
-            data: this.map_profile.map(p => p.y),
-            borderColor: "#81c784",
-            tension: 0.35,
-            pointRadius: 2
-          }
-        ]
+        datasets: [{
+          data: this.map_profile.map(p => p.y),
+          borderColor: "#81c784",
+          borderWidth: 2.5,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: "#ffffff"
+        }]
       };
     },
 
@@ -455,12 +690,12 @@ export default {
           {
             label: "IBC IN",
             data: this.ibc_temp_in.map(p => p.y),
-            backgroundColor: "rgba(77,208,225,0.75)"
+            backgroundColor: "rgba(77,208,225,0.7)"
           },
           {
             label: "IBC OUT",
             data: this.ibc_temp_out.map(p => p.y),
-            backgroundColor: "rgba(255,183,77,0.75)"
+            backgroundColor: "rgba(255,183,77,0.7)"
           }
         ]
       };
@@ -470,8 +705,20 @@ export default {
       return {
         labels: this.speed_set.map(p => p.x),
         datasets: [
-          { label: "SET", data: this.speed_set.map(p => p.y), borderColor: "#4dd0e1" },
-          { label: "ACT", data: this.speed_actual.map(p => p.y), borderColor: "#ff7043" }
+          {
+            label: "SET",
+            data: this.speed_set.map(p => p.y),
+            borderColor: "#4dd0e1",
+            borderWidth: 2.5,
+            tension: 0.3
+          },
+          {
+            label: "ACT",
+            data: this.speed_actual.map(p => p.y),
+            borderColor: "#ff7043",
+            borderWidth: 2.5,
+            tension: 0.3
+          }
         ]
       };
     },
@@ -485,38 +732,32 @@ export default {
             label: "Actual Thickness",
             data: this.thickness_trend.map(p => p.y),
             borderColor: "#ff7043",
-            tension: 0.3,
-            pointRadius: 2
+            backgroundColor: "rgba(255,112,67,0.15)",
+            borderWidth: 3,
+            tension: 0.35,
+            pointRadius: 3
           },
           {
             label: "Set Thickness",
             data: labels.map(() => this.thickness_stats.set),
             borderColor: "#4dd0e1",
             borderDash: [6, 4],
+            borderWidth: 2,
             pointRadius: 0
           }
         ]
       };
     },
 
-    lipChartOptions() {
-      return this.commonOptions("Die Width (mm)", "Thickness (µm)");
-    },
-    mapChartOptions() {
-      return this.commonOptions("Die Width (mm)", "Thickness (µm)");
-    },
-    ibcChartOptions() {
-      return this.commonOptions("Time", "Temperature (°C)", true);
-    },
-    speedChartOptions() {
-      return this.commonOptions("Time", "Speed (m/min)", true);
-    },
-    thicknessChartOptions() {
-      return this.commonOptions("Time", "Thickness (µm)");
-    }
+    /* ================= OPTIONS ================= */
+    lipChartOptions() { return this.commonOptions("Die Width", "Thickness"); },
+    mapChartOptions() { return this.commonOptions("Die Width", "Thickness"); },
+    ibcChartOptions() { return this.commonOptions("Time", "Temperature", true); },
+    speedChartOptions() { return this.commonOptions("Time", "Speed", true); },
+    thicknessChartOptions() { return this.commonOptions("Time", "Thickness"); }
   }
 };
-</script>
+</script> -->
 
 
 
@@ -1127,5 +1368,117 @@ h1, h2, .row-title {
 .back-icon {
   backdrop-filter: blur(6px);
 }
+
+
+
+/* ========================================= */
+/* 🔒 CHART FULLSCREEN / OVERFLOW FIX        */
+/* ========================================= */
+
+.graph-row,
+.thickness-graph-full {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Lock canvas inside its container */
+.graph-row canvas,
+.thickness-graph-full canvas {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: block;
+}
+
+/* Prevent Chart.js from escaping flex parents */
+.row,
+.graph-row,
+.dual-graph-row,
+.thickness-card-full {
+  contain: layout paint size;
+}
+
+
+/* ===== DIE ZONE FIX (VISIBLE Z1–Z7) ===== */
+.die-zone-card {
+  min-height: 140px;
+  overflow: visible;
+}
+
+.die-zone-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.die-zone {
+  min-height: 92px;
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.18),
+    rgba(255,255,255,0.08)
+  );
+
+  border: 1px solid rgba(127,220,255,0.3);
+  backdrop-filter: blur(6px);
+}
+
+/* Zone states */
+.die-zone.ok {
+  border-color: rgba(110,231,183,0.6);
+}
+
+.die-zone.warn {
+  border-color: rgba(255,183,77,0.7);
+}
+
+.die-zone.alert {
+  border-color: rgba(255,112,67,0.8);
+}
+
+/* Text clarity */
+.zone-name {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.zone-values div {
+  font-size: 13px;
+}
+
+.delta {
+  font-size: 14px;
+}
+
+
+
+
+/* Make chart containers slightly darker */
+.graph-row,
+.thickness-graph-full {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+/* Improve canvas text contrast */
+canvas {
+  filter: contrast(1.08) brightness(1.05);
+}
+
+/* Axis label clarity on high DPI screens */
+.chartjs-render-monitor {
+  image-rendering: crisp-edges;
+}
+
 
 </style>
