@@ -1,9 +1,13 @@
+import os
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager
 
+
+ASYNC_MODE = os.getenv("SOCKETIO_ASYNC_MODE", "threading")
+
 socketio = SocketIO(
     cors_allowed_origins="*",
-    async_mode="eventlet"
+    async_mode=ASYNC_MODE
 )
 
 jwt = JWTManager()
