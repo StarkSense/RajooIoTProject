@@ -131,6 +131,214 @@
 </template>
 
 
+<!-- <script>
+import { io } from "socket.io-client";
+import { Line } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+/* ================= REGISTER CHART.JS ================= */
+ChartJS.register(
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
+
+export default {
+  name: "Layer1",
+  components: { Line },
+
+  data() {
+    return {
+      currentDate: "",
+      currentTime: "",
+      socket: null,
+
+      /* ===== KPIs ===== */
+      speed: 0,
+      yieldVal: 0,
+      ampere: 0,
+
+      /* ===== GRAPHS ===== */
+      meltPressureTrend: [],
+      meltTemperatureTrend: [],
+      thicknessSetTrend: [],
+      thicknessActualTrend: []
+    };
+  },
+
+  mounted() {
+    this.updateClock();
+    setInterval(this.updateClock, 1000);
+
+    this.socket = io("http://localhost:5000", {
+      transports: ["websocket"]
+    });
+
+    this.socket.on("telemetry_update", (data) => {
+      const layer = data.layer_data?.layer1;
+      const trends = data.layer_trends?.layer1;
+
+      if (!layer || !trends) return;
+
+      /* ===== KPIs ===== */
+      this.speed = layer.speed ?? this.speed;
+      this.yieldVal = layer.yield ?? this.yieldVal;
+      this.ampere = layer.ampere ?? this.ampere;
+
+      /* ===== GRAPHS ===== */
+      this.meltPressureTrend = trends.melt_pressure.map((v, i) => ({
+        x: i + 1,
+        y: v
+      }));
+
+      this.meltTemperatureTrend = trends.melt_temperature.map((v, i) => ({
+        x: i + 1,
+        y: v
+      }));
+
+      this.thicknessSetTrend = trends.thickness_set.map((v, i) => ({
+        x: i + 1,
+        y: v
+      }));
+
+      this.thicknessActualTrend = trends.thickness_actual.map((v, i) => ({
+        x: i + 1,
+        y: v
+      }));
+    });
+  },
+
+  beforeUnmount() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  },
+
+  methods: {
+    navigate(path) {
+      if (this.$route.path !== path) {
+        this.$router.push(path);
+      }
+    },
+
+    goBack() {
+      this.$router.push("/dashboard");
+    },
+
+    isActive(path) {
+      return this.$route.path === path;
+    },
+
+    updateClock() {
+      const d = new Date();
+      this.currentDate = d.toLocaleDateString("en-GB");
+      this.currentTime = d.toLocaleTimeString("en-US");
+    }
+  },
+
+  computed: {
+    meltPressureChartData() {
+      return {
+        labels: this.meltPressureTrend.map(p => p.x),
+        datasets: [{
+          label: "Melt Pressure (Bar)",
+          data: this.meltPressureTrend.map(p => p.y),
+          borderColor: "#7fdcff",
+          tension: 0.35,
+          pointRadius: 2
+        }]
+      };
+    },
+
+    meltTemperatureChartData() {
+      return {
+        labels: this.meltTemperatureTrend.map(p => p.x),
+        datasets: [{
+          label: "Melt Temperature (°C)",
+          data: this.meltTemperatureTrend.map(p => p.y),
+          borderColor: "#ffb74d",
+          tension: 0.35,
+          pointRadius: 2
+        }]
+      };
+    },
+
+    thicknessChartData() {
+      const labels = this.thicknessActualTrend.map(p => p.x);
+      const setValue = this.thicknessSetTrend.length
+        ? this.thicknessSetTrend[this.thicknessSetTrend.length - 1].y
+        : 0;
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Actual Thickness",
+            data: this.thicknessActualTrend.map(p => p.y),
+            borderColor: "#ff7043",
+            tension: 0.3,
+            pointRadius: 2
+          },
+          {
+            label: "Set Thickness",
+            data: labels.map(() => setValue),
+            borderColor: "#4dd0e1",
+            borderDash: [6, 4],
+            pointRadius: 0
+          }
+        ]
+      };
+    },
+
+    chartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: "#e6f7fb",
+              font: { size: 11 }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: "Time",
+              color: "#e6f7fb"
+            },
+            ticks: { color: "#cfefff" }
+          },
+          y: {
+            title: {
+              display: true,
+              text: "Value",
+              color: "#e6f7fb"
+            },
+            ticks: { color: "#cfefff" }
+          }
+        }
+      };
+    }
+  }
+};
+</script> -->
+
 <script>
 import { io } from "socket.io-client";
 import { Line } from "vue-chartjs";
@@ -160,19 +368,16 @@ export default {
 
   data() {
     return {
-      /* ================= CLOCK ================= */
       currentDate: "",
       currentTime: "",
-
-      /* ================= SOCKET ================= */
       socket: null,
 
-      /* ================= LIVE NUMERIC DATA ================= */
-      speed: 0,        // RPM
-      yieldVal: 0,     // kg/hr
-      ampere: 0,       // A
+      /* ===== KPIs ===== */
+      speed: 0,
+      yieldVal: 0,
+      ampere: 0,
 
-      /* ================= LIVE GRAPH DATA ================= */
+      /* ===== GRAPHS ===== */
       meltPressureTrend: [],
       meltTemperatureTrend: [],
       thicknessSetTrend: [],
@@ -181,33 +386,50 @@ export default {
   },
 
   mounted() {
-    /* ================= CLOCK ================= */
     this.updateClock();
     setInterval(this.updateClock, 1000);
 
-    /* ================= SOCKET CONNECTION ================= */
     this.socket = io("http://localhost:5000", {
       transports: ["websocket"]
     });
 
     this.socket.on("telemetry_update", (data) => {
-      /* ================= NUMERIC VALUES ================= */
-      if (data.speed_trend?.actual?.length) {
-        this.speed =
-          data.speed_trend.actual[data.speed_trend.actual.length - 1].y;
-      }
+      const layer = data.layer_data?.layer1;
+      const trends = data.layer_trends?.layer1;
 
-      this.yieldVal = data.total_actual_output ?? this.yieldVal;
+      if (!layer || !trends) return;
 
-      /* Dummy ampere (replace with OPC-UA later) */
-      this.ampere = Math.round(Math.random() * 20 + 40);
+      /* ===== KPIs ===== */
+      this.speed = layer.speed ?? this.speed;
+      this.yieldVal = layer.yield ?? this.yieldVal;
+      this.ampere = layer.ampere ?? this.ampere;
 
-      /* ================= GRAPH DATA ================= */
-      this.meltPressureTrend = data.map_profile ?? [];
-      this.meltTemperatureTrend = data.ibc_temp?.in ?? [];
+      const now = new Date().toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
 
-      this.thicknessSetTrend = data.speed_trend?.set ?? [];
-      this.thicknessActualTrend = data.speed_trend?.actual ?? [];
+      /* ===== GRAPHS (ADD TIMESTAMP) ===== */
+      this.meltPressureTrend = trends.melt_pressure.map((v, i) => ({
+        x: now,
+        y: v
+      }));
+
+      this.meltTemperatureTrend = trends.melt_temperature.map((v, i) => ({
+        x: now,
+        y: v
+      }));
+
+      this.thicknessSetTrend = trends.thickness_set.map((v, i) => ({
+        x: now,
+        y: v
+      }));
+
+      this.thicknessActualTrend = trends.thickness_actual.map((v, i) => ({
+        x: now,
+        y: v
+      }));
     });
   },
 
@@ -219,14 +441,12 @@ export default {
   },
 
   methods: {
-    /* ================= CENTRALIZED NAVIGATION ================= */
     navigate(path) {
       if (this.$route.path !== path) {
         this.$router.push(path);
       }
     },
 
-    /* ================= BACK TO DASHBOARD ================= */
     goBack() {
       this.$router.push("/dashboard");
     },
@@ -235,57 +455,49 @@ export default {
       return this.$route.path === path;
     },
 
-    /* ================= CLOCK ================= */
     updateClock() {
       const d = new Date();
       this.currentDate = d.toLocaleDateString("en-GB");
-      this.currentTime = d.toLocaleTimeString("en-US");
+      this.currentTime = d.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
     }
   },
 
-  /* ============================================================
-     ================= COMPUTED CHART DATA ======================
-     ============================================================ */
   computed: {
-    /* -------- Melt Pressure Chart -------- */
     meltPressureChartData() {
       return {
         labels: this.meltPressureTrend.map(p => p.x),
-        datasets: [
-          {
-            label: "Melt Pressure (Bar)",
-            data: this.meltPressureTrend.map(p => p.y),
-            borderColor: "#7fdcff",
-            tension: 0.35,
-            pointRadius: 2
-          }
-        ]
+        datasets: [{
+          label: "Melt Pressure (Bar)",
+          data: this.meltPressureTrend.map(p => p.y),
+          borderColor: "#7fdcff",
+          tension: 0.35,
+          pointRadius: 2
+        }]
       };
     },
 
-    /* -------- Melt Temperature Chart -------- */
     meltTemperatureChartData() {
       return {
         labels: this.meltTemperatureTrend.map(p => p.x),
-        datasets: [
-          {
-            label: "Melt Temperature (°C)",
-            data: this.meltTemperatureTrend.map(p => p.y),
-            borderColor: "#ffb74d",
-            tension: 0.35,
-            pointRadius: 2
-          }
-        ]
+        datasets: [{
+          label: "Melt Temperature (°C)",
+          data: this.meltTemperatureTrend.map(p => p.y),
+          borderColor: "#ffb74d",
+          tension: 0.35,
+          pointRadius: 2
+        }]
       };
     },
 
-    /* -------- Set vs Actual Thickness Chart -------- */
     thicknessChartData() {
       const labels = this.thicknessActualTrend.map(p => p.x);
-
-      const setThickness = this.thicknessSetTrend.length
+      const setValue = this.thicknessSetTrend.length
         ? this.thicknessSetTrend[this.thicknessSetTrend.length - 1].y
-        : 18;
+        : 0;
 
       return {
         labels,
@@ -299,17 +511,15 @@ export default {
           },
           {
             label: "Set Thickness",
-            data: labels.map(() => setThickness),
+            data: labels.map(() => setValue),
             borderColor: "#4dd0e1",
             borderDash: [6, 4],
-            tension: 0,
             pointRadius: 0
           }
         ]
       };
     },
 
-    /* -------- Common Chart Options WITH AXIS LABELS -------- */
     chartOptions() {
       return {
         responsive: true,
@@ -328,25 +538,17 @@ export default {
             title: {
               display: true,
               text: "Time",
-              color: "#e6f7fb",
-              font: { size: 12, weight: "600" }
+              color: "#e6f7fb"
             },
-            ticks: {
-              color: "#cfefff",
-              font: { size: 10 }
-            }
+            ticks: { color: "#cfefff" }
           },
           y: {
             title: {
               display: true,
               text: "Value",
-              color: "#e6f7fb",
-              font: { size: 12, weight: "600" }
+              color: "#e6f7fb"
             },
-            ticks: {
-              color: "#cfefff",
-              font: { size: 10 }
-            }
+            ticks: { color: "#cfefff" }
           }
         }
       };
@@ -354,7 +556,6 @@ export default {
   }
 };
 </script>
-
 
 
 <style scoped>
