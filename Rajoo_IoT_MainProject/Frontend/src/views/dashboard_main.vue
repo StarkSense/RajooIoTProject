@@ -140,6 +140,7 @@ import {
   Chart as ChartJS,
   LineElement,
   BarElement,
+  BarController,
   PointElement,
   LinearScale,
   CategoryScale,
@@ -147,13 +148,11 @@ import {
   Legend
 } from "chart.js";
 
-/* ================= GLOBAL CHART SAFETY ================= */
-ChartJS.defaults.responsive = true;
-ChartJS.defaults.maintainAspectRatio = false;
-
+/* ================= REGISTER ================= */
 ChartJS.register(
   LineElement,
   BarElement,
+  BarController,
   PointElement,
   LinearScale,
   CategoryScale,
@@ -161,33 +160,44 @@ ChartJS.register(
   Legend
 );
 
+ChartJS.defaults.responsive = true;
+ChartJS.defaults.maintainAspectRatio = false;
+
 export default {
   name: "DashboardMain",
   components: { Line, Bar },
 
   data() {
     return {
+      /* 🔑 Forces chart refresh */
+      chartKey: 0,
+
       currentDate: "",
       currentTime: "",
       socket: null,
 
-      /* ================= KPIs ================= */
       total_set_output: 0,
       total_actual_output: 0,
       density: 0,
       gsm: 0,
       lay_flat: 0,
 
-      /* ================= RAW DATA ================= */
-      lip_profile: [],
-      map_profile: [],
-      ibc_temp_in: [],
-      ibc_temp_out: [],
+      lip_labels: [],
+      lip_values: [],
+
+      map_labels: [],
+      map_values: [],
+
+      ibc_labels: [],
+      ibc_in: [],
+      ibc_out: [],
+
+      speed_labels: [],
       speed_set: [],
       speed_actual: [],
-      die_temp_zones: [],
-      thickness_trend: [],
 
+      thickness_labels: [],
+      thickness_actual: [],
       thickness_stats: {
         set: 0,
         avg: 0,
@@ -195,82 +205,90 @@ export default {
         max: 0,
         min: 0,
         gbr: 0
-      }
+      },
+
+      die_temp_zones: []
     };
   },
 
   mounted() {
+    /* Clock */
     this.updateClock();
     setInterval(this.updateClock, 1000);
 
+    /* Socket connection */
     this.socket = io("http://localhost:5000", {
       transports: ["websocket"]
     });
 
+    /* Realtime telemetry */
     this.socket.on("telemetry_update", (data) => {
-      /* ================= KPIs ================= */
+      /* KPIs */
       if (data.machine_overview) {
-        const m = data.machine_overview;
-        this.total_set_output = Number(m.total_set_output || 0);
-        this.total_actual_output = Number(m.total_actual_output || 0);
-        this.density = Number(m.density || 0);
-        this.gsm = Number(m.gsm || 0);
-        this.lay_flat = Number(m.lay_flat || 0);
+        Object.assign(this, data.machine_overview);
       }
 
-      /* ================= PROFILES ================= */
-      this.lip_profile = data.lip_profile ?? [];
-      this.map_profile = data.map_profile ?? [];
+      /* Profiles */
+      this.lip_labels = data.lip_profile?.map(p => String(p.x)) ?? [];
+      this.lip_values = data.lip_profile?.map(p => p.y) ?? [];
 
-      /* ================= TIME-SERIES ================= */
-      this.ibc_temp_in = this.toXYWithTime(data.ibc_temp?.in ?? []);
-      this.ibc_temp_out = this.toXYWithTime(data.ibc_temp?.out ?? []);
-      this.speed_set = this.toXYWithTime(data.speed_trend?.set ?? []);
-      this.speed_actual = this.toXYWithTime(data.speed_trend?.actual ?? []);
+      this.map_labels = data.map_profile?.map(p => String(p.x)) ?? [];
+      this.map_values = data.map_profile?.map(p => p.y) ?? [];
 
-      /* ================= DIE TEMP ================= */
+      /* Time labels every 10 sec */
+      const makeTime = (len) =>
+        Array.from({ length: len }, (_, i) =>
+          new Date(Date.now() - (len - i - 1) * 10000)
+            .toLocaleTimeString("en-GB")
+        );
+
+      /* IBC */
+      this.ibc_labels = makeTime(data.ibc_temp?.in?.length || 0);
+      this.ibc_in = data.ibc_temp?.in ?? [];
+      this.ibc_out = data.ibc_temp?.out ?? [];
+
+      /* Speed */
+      this.speed_labels = makeTime(data.speed_trend?.set?.length || 0);
+      this.speed_set = data.speed_trend?.set ?? [];
+      this.speed_actual = data.speed_trend?.actual ?? [];
+
+      /* Thickness */
+      if (data.thickness) {
+        this.thickness_labels = makeTime(data.thickness.trend.length);
+        this.thickness_actual = data.thickness.trend;
+        this.thickness_stats = data.thickness.stats;
+      }
+
+      /* Die temperature */
       this.die_temp_zones = data.die_temp_zones ?? [];
 
-      /* ================= THICKNESS ================= */
-      if (data.thickness) {
-        this.thickness_trend = this.toXYWithTime(data.thickness.trend ?? []);
-        this.thickness_stats = {
-          ...this.thickness_stats,
-          ...data.thickness.stats
-        };
-      }
+      /* 🔥 Force chart redraw */
+      this.chartKey++;
     });
+
+    /* Safety refresh every 10 seconds */
+    setInterval(() => {
+      this.chartKey++;
+    }, 10000);
   },
 
   methods: {
-    /* ===== Convert values → timestamps ===== */
-    toXYWithTime(series) {
-      const now = new Date();
-      return series.map((v, i) => {
-        const t = new Date(now.getTime() - (series.length - i - 1) * 10000);
-        return {
-          x: t.toLocaleTimeString("en-GB"),
-          y: v
-        };
-      });
-    },
-
-    /* ===== Navigation ===== */
-    goToLayer(path) {
-      if (this.$route.path !== path) this.$router.push(path);
-    },
-    goTo(path) {
-      if (this.$route.path !== path) this.$router.push(path);
-    },
-    isActive(path) {
-      return this.$route.path === path;
-    },
-
-    /* ===== Clock ===== */
     updateClock() {
       const now = new Date();
       this.currentDate = now.toLocaleDateString("en-GB");
       this.currentTime = now.toLocaleTimeString("en-GB");
+    },
+
+    goToLayer(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+
+    goTo(path) {
+      if (this.$route.path !== path) this.$router.push(path);
+    },
+
+    isActive(path) {
+      return this.$route.path === path;
     },
 
     zoneStatus(zone) {
@@ -286,62 +304,41 @@ export default {
       this.$router.replace("/");
     },
 
-    /* ================= CHART OPTIONS ================= */
+    /* Common chart options */
     commonOptions(xLabel, yLabel, legend = false) {
       return {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        resizeDelay: 150,
 
         plugins: {
           legend: legend
-            ? {
-                labels: {
-                  color: "#e6f7fb",
-                  font: { size: 14, weight: "600" }
-                }
-              }
-            : { display: false },
-
-          tooltip: {
-            backgroundColor: "rgba(10,25,35,0.95)",
-            titleColor: "#ffffff",
-            bodyColor: "#e6f7fb",
-            borderColor: "#7fdcff",
-            borderWidth: 1
-          }
+            ? { labels: { color: "#e6f7fb", font: { size: 13 } } }
+            : { display: false }
         },
 
         scales: {
           x: {
+            type: "category",
             title: {
               display: true,
               text: xLabel,
-              color: "#ffffff",
-              font: { size: 14, weight: "600" }
+              color: "#ffffff"
             },
             ticks: {
               color: "#dff6ff",
-              font: { size: 12 }
-            },
-            grid: {
-              color: "rgba(255,255,255,0.12)"
+              autoSkip: true,
+              maxRotation: 0
             }
           },
           y: {
             title: {
               display: true,
               text: yLabel,
-              color: "#ffffff",
-              font: { size: 14, weight: "600" }
+              color: "#ffffff"
             },
             ticks: {
-              color: "#dff6ff",
-              font: { size: 12 }
-            },
-            grid: {
-              color: "rgba(255,255,255,0.12)"
+              color: "#dff6ff"
             }
           }
         }
@@ -350,12 +347,11 @@ export default {
   },
 
   computed: {
-    /* ================= DATASETS ================= */
     lipChartData() {
       return {
-        labels: this.lip_profile.map(p => p.x),
+        labels: this.lip_labels,
         datasets: [{
-          data: this.lip_profile.map(p => p.y),
+          data: this.lip_values,
           borderColor: "#7fdcff",
           borderWidth: 2.5,
           tension: 0.35,
@@ -366,9 +362,9 @@ export default {
 
     mapChartData() {
       return {
-        labels: this.map_profile.map(p => p.x),
+        labels: this.map_labels,
         datasets: [{
-          data: this.map_profile.map(p => p.y),
+          data: this.map_values,
           borderColor: "#81c784",
           borderWidth: 2.5,
           tension: 0.35,
@@ -379,39 +375,45 @@ export default {
 
     ibcChartData() {
       return {
-        labels: this.ibc_temp_in.map(p => p.x),
+        labels: this.ibc_labels,
         datasets: [
-          { label: "IBC IN", data: this.ibc_temp_in.map(p => p.y) },
-          { label: "IBC OUT", data: this.ibc_temp_out.map(p => p.y) }
+          {
+            label: "IBC IN",
+            data: this.ibc_in,
+            backgroundColor: "rgba(79,195,247,0.9)"
+          },
+          {
+            label: "IBC OUT",
+            data: this.ibc_out,
+            backgroundColor: "rgba(255,138,101,0.9)"
+          }
         ]
       };
     },
 
     speedChartData() {
       return {
-        labels: this.speed_set.map(p => p.x),
+        labels: this.speed_labels,
         datasets: [
-          { label: "SET", data: this.speed_set.map(p => p.y), borderColor: "#4dd0e1" },
-          { label: "ACT", data: this.speed_actual.map(p => p.y), borderColor: "#ff7043" }
+          { label: "SET", data: this.speed_set, borderColor: "#4dd0e1" },
+          { label: "ACT", data: this.speed_actual, borderColor: "#ff7043" }
         ]
       };
     },
 
     thicknessChartData() {
-      const labels = this.thickness_trend.map(p => p.x);
       return {
-        labels,
+        labels: this.thickness_labels,
         datasets: [
           {
-            label: "Actual Thickness",
-            data: this.thickness_trend.map(p => p.y),
+            label: "Actual",
+            data: this.thickness_actual,
             borderColor: "#ff7043",
-            borderWidth: 3,
-            tension: 0.35
+            borderWidth: 3
           },
           {
-            label: "Set Thickness",
-            data: labels.map(() => this.thickness_stats.set),
+            label: "Set",
+            data: this.thickness_labels.map(() => this.thickness_stats.set),
             borderColor: "#4dd0e1",
             borderDash: [6, 4]
           }
@@ -419,7 +421,6 @@ export default {
       };
     },
 
-    /* ================= OPTIONS ================= */
     lipChartOptions() {
       return this.commonOptions("Die Width", "Thickness (µm)");
     },
@@ -427,337 +428,19 @@ export default {
       return this.commonOptions("Die Width", "Thickness (µm)");
     },
     ibcChartOptions() {
-      return this.commonOptions("Time (HH:MM:SS)", "Temperature (°C)", true);
+      return this.commonOptions("Time", "Temperature (°C)", true);
     },
     speedChartOptions() {
-      return this.commonOptions("Time (HH:MM:SS)", "Speed", true);
+      return this.commonOptions("Time", "Speed", true);
     },
     thicknessChartOptions() {
-      return this.commonOptions("Time (HH:MM:SS)", "Thickness (µm)");
+      return this.commonOptions("Time", "Thickness (µm)");
     }
   }
 };
 </script>
 
 
-<!-- <script>
-import { io } from "socket.io-client";
-import { Line, Bar } from "vue-chartjs";
-import {
-  Chart as ChartJS,
-  LineElement,
-  BarElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend
-} from "chart.js";
-
-/* ================= GLOBAL CHART SAFETY ================= */
-ChartJS.defaults.responsive = true;
-ChartJS.defaults.maintainAspectRatio = false;
-
-ChartJS.register(
-  LineElement,
-  BarElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend
-);
-
-export default {
-  name: "DashboardMain",
-  components: { Line, Bar },
-
-  data() {
-    return {
-      currentDate: "",
-      currentTime: "",
-      socket: null,
-
-      /* ================= KPIs ================= */
-      total_set_output: 0,
-      total_actual_output: 0,
-      density: 0,
-      gsm: 0,
-      lay_flat: 0,
-
-      /* ================= TELEMETRY ================= */
-      lip_profile: [],
-      map_profile: [],
-      ibc_temp_in: [],
-      ibc_temp_out: [],
-      speed_set: [],
-      speed_actual: [],
-      die_temp_zones: [],
-      thickness_trend: [],
-      thickness_stats: {
-        set: 0,
-        avg: 0,
-        nominal: 0,
-        max: 0,
-        min: 0,
-        gbr: 0
-      }
-    };
-  },
-
-  mounted() {
-    this.updateClock();
-    setInterval(this.updateClock, 1000);
-
-    this.socket = io("http://localhost:5000", {
-      transports: ["websocket"]
-    });
-
-    this.socket.on("telemetry_update", (data) => {
-      /* ================= MACHINE OVERVIEW ================= */
-      if (data.machine_overview) {
-        const m = data.machine_overview;
-        this.total_set_output = Number(m.total_set_output || 0);
-        this.total_actual_output = Number(m.total_actual_output || 0);
-        this.density = Number(m.density || 0);
-        this.gsm = Number(m.gsm || 0);
-        this.lay_flat = Number(m.lay_flat || 0);
-      }
-
-      /* ================= PROFILES ================= */
-      this.lip_profile = data.lip_profile ?? [];
-      this.map_profile = data.map_profile ?? [];
-
-      /* ================= TIME SERIES ================= */
-      this.ibc_temp_in = this.toXY(data.ibc_temp?.in ?? []);
-      this.ibc_temp_out = this.toXY(data.ibc_temp?.out ?? []);
-      this.speed_set = this.toXY(data.speed_trend?.set ?? []);
-      this.speed_actual = this.toXY(data.speed_trend?.actual ?? []);
-
-      /* ================= DIE TEMPERATURE ================= */
-      this.die_temp_zones = data.die_temp_zones ?? [];
-
-      /* ================= THICKNESS ================= */
-      if (data.thickness) {
-        this.thickness_trend = this.toXY(data.thickness.trend ?? []);
-        this.thickness_stats = {
-          ...this.thickness_stats,
-          ...data.thickness.stats
-        };
-      }
-    });
-  },
-
-  methods: {
-    /* ================= HELPERS ================= */
-    toXY(series) {
-      return series.map((v, i) => ({ x: i + 1, y: v }));
-    },
-
-    updateClock() {
-      const now = new Date();
-      this.currentDate = now.toLocaleDateString("en-GB");
-      this.currentTime = now.toLocaleTimeString("en-US");
-    },
-
-    zoneStatus(zone) {
-      const diff = Math.abs(zone.actual - zone.set);
-      if (diff <= 2) return "ok";
-      if (diff <= 5) return "warn";
-      return "alert";
-    },
-
-    handleLogout() {
-      if (this.socket) this.socket.disconnect();
-      localStorage.removeItem("token");
-      this.$router.replace("/");
-    },
-
-    /* ================= NAVIGATION ================= */
-    goToLayer(path) {
-      if (this.$route.path !== path) this.$router.push(path);
-    },
-    goTo(path) {
-      if (this.$route.path !== path) this.$router.push(path);
-    },
-    isActive(path) {
-      return this.$route.path === path;
-    },
-
-    /* ================= CHART OPTIONS (READABLE) ================= */
-    commonOptions(xLabel, yLabel, showLegend = false) {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        resizeDelay: 150,
-
-        plugins: {
-          legend: showLegend
-            ? {
-                labels: {
-                  color: "#e6f7fb",
-                  font: { size: 14, weight: "600" },
-                  boxWidth: 18,
-                  padding: 16
-                }
-              }
-            : { display: false },
-
-          tooltip: {
-            backgroundColor: "rgba(15,35,50,0.95)",
-            titleColor: "#ffffff",
-            bodyColor: "#e6f7fb",
-            borderColor: "#7fdcff",
-            borderWidth: 1,
-            titleFont: { size: 14, weight: "600" },
-            bodyFont: { size: 13 }
-          }
-        },
-
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: xLabel,
-              color: "#ffffff",
-              font: { size: 14, weight: "600" }
-            },
-            ticks: {
-              color: "#dff6ff",
-              font: { size: 12, weight: "500" },
-              padding: 6
-            },
-            grid: {
-              color: "rgba(255,255,255,0.12)"
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: yLabel,
-              color: "#ffffff",
-              font: { size: 14, weight: "600" }
-            },
-            ticks: {
-              color: "#dff6ff",
-              font: { size: 12, weight: "500" },
-              padding: 6
-            },
-            grid: {
-              color: "rgba(255,255,255,0.12)"
-            }
-          }
-        }
-      };
-    }
-  },
-
-  computed: {
-    /* ================= DATASETS ================= */
-    lipChartData() {
-      return {
-        labels: this.lip_profile.map(p => p.x),
-        datasets: [{
-          data: this.lip_profile.map(p => p.y),
-          borderColor: "#7fdcff",
-          borderWidth: 2.5,
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: "#ffffff"
-        }]
-      };
-    },
-
-    mapChartData() {
-      return {
-        labels: this.map_profile.map(p => p.x),
-        datasets: [{
-          data: this.map_profile.map(p => p.y),
-          borderColor: "#81c784",
-          borderWidth: 2.5,
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: "#ffffff"
-        }]
-      };
-    },
-
-    ibcChartData() {
-      return {
-        labels: this.ibc_temp_in.map(p => p.x),
-        datasets: [
-          {
-            label: "IBC IN",
-            data: this.ibc_temp_in.map(p => p.y),
-            backgroundColor: "rgba(77,208,225,0.7)"
-          },
-          {
-            label: "IBC OUT",
-            data: this.ibc_temp_out.map(p => p.y),
-            backgroundColor: "rgba(255,183,77,0.7)"
-          }
-        ]
-      };
-    },
-
-    speedChartData() {
-      return {
-        labels: this.speed_set.map(p => p.x),
-        datasets: [
-          {
-            label: "SET",
-            data: this.speed_set.map(p => p.y),
-            borderColor: "#4dd0e1",
-            borderWidth: 2.5,
-            tension: 0.3
-          },
-          {
-            label: "ACT",
-            data: this.speed_actual.map(p => p.y),
-            borderColor: "#ff7043",
-            borderWidth: 2.5,
-            tension: 0.3
-          }
-        ]
-      };
-    },
-
-    thicknessChartData() {
-      const labels = this.thickness_trend.map(p => p.x);
-      return {
-        labels,
-        datasets: [
-          {
-            label: "Actual Thickness",
-            data: this.thickness_trend.map(p => p.y),
-            borderColor: "#ff7043",
-            backgroundColor: "rgba(255,112,67,0.15)",
-            borderWidth: 3,
-            tension: 0.35,
-            pointRadius: 3
-          },
-          {
-            label: "Set Thickness",
-            data: labels.map(() => this.thickness_stats.set),
-            borderColor: "#4dd0e1",
-            borderDash: [6, 4],
-            borderWidth: 2,
-            pointRadius: 0
-          }
-        ]
-      };
-    },
-
-    /* ================= OPTIONS ================= */
-    lipChartOptions() { return this.commonOptions("Die Width", "Thickness"); },
-    mapChartOptions() { return this.commonOptions("Die Width", "Thickness"); },
-    ibcChartOptions() { return this.commonOptions("Time", "Temperature", true); },
-    speedChartOptions() { return this.commonOptions("Time", "Speed", true); },
-    thicknessChartOptions() { return this.commonOptions("Time", "Thickness"); }
-  }
-};
-</script> -->
 
 
 
@@ -1480,5 +1163,176 @@ canvas {
   image-rendering: crisp-edges;
 }
 
+/* ========================================= */
+/* CHART AXIS & LABEL READABILITY BOOST      */
+/* ========================================= */
+
+/* Give charts a little more breathing room */
+.graph-row,
+.thickness-graph-full {
+  padding-bottom: 14px; /* allows X-axis titles to breathe */
+}
+
+/* Make axis text sharper */
+.graph-row canvas,
+.thickness-graph-full canvas {
+  image-rendering: crisp-edges;
+}
+
+/* Improve contrast for grid + text */
+canvas {
+  filter: contrast(1.1) brightness(1.08);
+}
+
+
+/* ========================================= */
+/* 🔧 HEIGHT TUNING – DIE TEMP & THICKNESS   */
+/* ========================================= */
+
+/* Reduce die temperature panel height */
+.die-zone-card {
+  min-height: 120px;        /* was ~140px */
+  padding-bottom: 8px;
+}
+
+/* Slightly reduce die zone boxes */
+.die-zone {
+  min-height: 80px;         /* was ~92px */
+  padding: 10px 6px;
+}
+
+/* Reduce thickness panel vertical usage */
+.thickness-card-full {
+  height: auto;             /* stop forcing extra height */
+  padding-bottom: 8px;
+}
+
+/* Reduce graph container height */
+.thickness-graph-full {
+  min-height: 170px;        /* was taller */
+}
+
+/* Reduce internal spacing */
+.thickness-content-full {
+  padding-top: 0;
+}
+
+
+/* Give upper graphs extra bottom room for X-axis labels */
+.graph-row {
+  padding-bottom: 18px;     /* was ~14px */
+}
+
+/* ================================================= */
+/* 🔥 FINAL REFINEMENT – SAFE & RESPONSIVE 🔥 */
+/* ================================================= */
+
+/* ---------- DIE TEMPERATURE (RESPONSIVE) ---------- */
+
+/* Slightly taller but flexible */
+.die-zone-card {
+  min-height: 155px !important;
+}
+
+/* Responsive grid: wraps automatically */
+.die-zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+}
+
+/* Slightly compact cards */
+.die-zone {
+  min-height: 85px;
+  padding: 10px 6px;
+}
+
+/* ---------- THICKNESS (REDUCED BUT SAFE) ---------- */
+
+/* Reduce height without collapsing */
+.thickness-card-full {
+  min-height: 230px !important;   /* ⬅ reduced from 260 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure content stretches correctly */
+.thickness-content-full {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Reduce graph height slightly */
+.thickness-graph-full {
+  min-height: 180px !important;   /* ⬅ reduced from 200 */
+  position: relative;
+}
+
+/* Keep canvas rendering guaranteed */
+.thickness-graph-full canvas {
+  height: 100% !important;
+}
+
+/* ---------- SAFETY: KEEP X-AXIS LABELS VISIBLE ---------- */
+.graph-row {
+  padding-bottom: 22px;   /* do not reduce */
+}
+
+/* ================================================= */
+/* ✅ FINAL HEIGHT CORRECTION – THICKNESS GRAPH */
+/* ================================================= */
+
+/* Balanced thickness card height */
+.thickness-card-full {
+  min-height: 210px !important;
+  max-height: 210px !important;
+  overflow: hidden;
+}
+
+/* Graph area perfectly sized */
+.thickness-graph-full {
+  min-height: 150px !important;
+  max-height: 150px !important;
+  overflow: hidden;
+}
+
+/* Canvas locked to graph area */
+.thickness-graph-full canvas {
+  height: 150px !important;
+  min-height: 150px !important;
+  max-height: 150px !important;
+}
+
+/* Keep layout tight and aligned */
+.thickness-content-full {
+  align-items: flex-start;
+}
+
+
+/* ========================================= */
+/* ✅ ALIGN THICKNESS INFO WITH GRAPH        */
+/* ========================================= */
+
+/* Move the right-side text slightly upward */
+.thickness-info-full {
+  margin-top: -10px;        /* ⬆ lift text */
+  padding-top: 0;
+}
+
+/* Slightly tighten line spacing for compact look */
+.thickness-info-full {
+  line-height: 1.55;        /* was 1.7 */
+}
+
+/* Optional: make labels a bit clearer without resizing */
+.thickness-info-full b {
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+
 
 </style>
+
+
