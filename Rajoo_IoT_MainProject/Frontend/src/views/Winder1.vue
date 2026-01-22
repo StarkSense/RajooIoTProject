@@ -1,216 +1,225 @@
 <template>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="avatar">
-        <img src="/user-icon.png" />
+  <section class="panel full-panel">
+    <h2>WINDER 1</h2>
+
+    <!-- ================= KPI ROW ================= -->
+    <div class="kpi-row">
+      <div class="kpi-tile">
+        <div class="kpi-title">TOTALIZER</div>
+        <div class="kpi-value">{{ winder.totalizer }}</div>
+        <div class="kpi-unit">m</div>
       </div>
 
-      <div class="menu-section">
-        <div class="menu-title">LAYERS</div>
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer1') }"
-          @click="navigate('/layer1')"
-        >Layer 1</button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer2') }"
-          @click="navigate('/layer2')"
-        >Layer 2</button>
-
-        <button
-          class="menu-item"
-          :class="{ active: isActive('/layer3') }"
-          @click="navigate('/layer3')"
-        >Layer 3</button>
+      <div class="kpi-tile">
+        <div class="kpi-title">ROLL LENGTH</div>
+        <div class="kpi-value">{{ latestRollLength }}</div>
+        <div class="kpi-unit">m</div>
       </div>
 
-      <div class="menu-section">
-        <div class="menu-title">EXTRUDER</div>
-        <button class="menu-item" @click="navigate('/extruder1')">Extruder 1</button>
-        <button class="menu-item" @click="navigate('/extruder2')">Extruder 2</button>
-        <button class="menu-item" @click="navigate('/extruder3')">Extruder 3</button>
+      <div class="kpi-tile">
+        <div class="kpi-title">ROLL DIAMETER</div>
+        <div class="kpi-value">{{ latestRollDia }}</div>
+        <div class="kpi-unit">mm</div>
       </div>
+    </div>
 
-      <div class="menu-section">
-        <div class="menu-title">WINDER</div>
-        <button class="menu-item" @click="navigate('/winder1')">Winder 1</button>
-        <button class="menu-item" @click="navigate('/winder2')">Winder 2</button>
+    <!-- ================= ROLL LENGTH ================= -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <span>ROLL LENGTH</span>
+        <span class="badge">{{ latestRollLength }} m</span>
       </div>
+      <canvas ref="rollLengthChart"></canvas>
+    </div>
 
-      <div class="menu-section">
-        <div class="menu-title">UTILITIES</div>
-        <button class="menu-item" @click="navigate('/reports')">Reports</button>
-        <button class="menu-item" @click="navigate('/material-utilization')">
-          Material Utilization
-        </button>
+    <!-- ================= ROLL DIAMETER ================= -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <span>ROLL DIAMETER</span>
+        <span class="badge">{{ latestRollDia }} mm</span>
       </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div class="top-left">
-          <img src="/back-arrow.png" class="back-icon" @click="goBack" />
-          <h1>THREE LAYER BLOWN FILM LINE</h1>
-        </div>
-
-        <div class="top-right">
-          <span class="pill dark">
-            {{ currentDate }}<br />{{ currentTime }}
-          </span>
-          <img src="/notification.png" class="notification-icon" />
-          <img src="/power-button.png" class="power-icon" />
-        </div>
-      </header>
-
-      <div class="content">
-        <section class="panel left-panel">
-          <h2>WINDER 1</h2>
-        </section>
-
-        <section class="panel right-panel">
-          <h2>OVERALL EQUIPMENT EFFICIENCY</h2>
-          <div class="oee-grid">
-            <div class="oee-box">OEE <span>72%</span></div>
-            <div class="oee-box">Availability <span>87%</span></div>
-            <div class="oee-box">Performance <span>81%</span></div>
-            <div class="oee-box">Quality <span>94%</span></div>
-          </div>
-        </section>
-      </div>
-
-      <footer class="footer">MODEL : RFC-2550-40-1800</footer>
-    </main>
-  </div>
+      <canvas ref="rollDiaChart"></canvas>
+    </div>
+  </section>
 </template>
 
 <script>
+import {
+  Chart,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+Chart.register(
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
+
 export default {
-  name: "Winder 1",
+  name: "Winder1",
+
   data() {
-    return { currentDate: "", currentTime: "" };
+    return {
+      winder: {
+        totalizer: 0,
+        rollLength: [],
+        rollDia: []
+      },
+      rollLengthChart: null,
+      rollDiaChart: null
+    };
   },
+
+  computed: {
+    latestRollLength() {
+      return this.winder.rollLength.at(-1) || 0;
+    },
+    latestRollDia() {
+      return this.winder.rollDia.at(-1) || 0;
+    }
+  },
+
   mounted() {
-    this.updateClock();
-    setInterval(this.updateClock, 1000);
-  },
-  methods: {
-    // CENTRALIZED NAVIGATION
-    navigate(path) {
-      if (this.$route.path !== path) {
-        this.$router.push(path);
+    this.initCharts();
+
+    this.$socket.on("telemetry_update", (payload) => {
+      const w = payload?.winder_data?.winder1;
+      const t = payload?.winder_trends?.winder1;
+
+      if (w) this.winder.totalizer = w.totalizer;
+      if (t) {
+        this.winder.rollLength = t.roll_length || [];
+        this.winder.rollDia = t.roll_dia || [];
+        this.updateCharts();
       }
+    });
+  },
+
+  methods: {
+    initCharts() {
+      this.rollLengthChart = this.createChart(
+        this.$refs.rollLengthChart,
+        "Roll Length (m)",
+        "#5eead4"
+      );
+
+      this.rollDiaChart = this.createChart(
+        this.$refs.rollDiaChart,
+        "Roll Diameter (mm)",
+        "#60a5fa"
+      );
     },
 
-    // ALWAYS GO BACK TO DASHBOARD
-    goBack() {
-      this.$router.push("/dashboard");
+    createChart(canvas, label, color) {
+      return new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label,
+              data: [],
+              borderColor: color,
+              tension: 0.35,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#cbd5e1" } }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#94a3b8" },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            },
+            y: {
+              ticks: { color: "#94a3b8" },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            }
+          }
+        }
+      });
     },
 
-    isActive(path) {
-      return this.$route.path === path;
-    },
+    updateCharts() {
+      this.rollLengthChart.data.labels =
+        this.winder.rollLength.map((_, i) => i + 1);
+      this.rollLengthChart.data.datasets[0].data =
+        this.winder.rollLength;
+      this.rollLengthChart.update();
 
-    updateClock() {
-      const d = new Date();
-      this.currentDate = d.toLocaleDateString("en-GB");
-      this.currentTime = d.toLocaleTimeString("en-US");
+      this.rollDiaChart.data.labels =
+        this.winder.rollDia.map((_, i) => i + 1);
+      this.rollDiaChart.data.datasets[0].data =
+        this.winder.rollDia;
+      this.rollDiaChart.update();
     }
   }
 };
 </script>
 
-
 <style scoped>
-.top-left {
+.kpi-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.back-icon {
-  width: 34px;
-  cursor: pointer;
+  gap: 20px;
+  margin: 20px 0 28px;
 }
 
-/* BACK BUTTON ICON */
-.back-icon {
-  width: 38px;
-  height: 38px;
-  cursor: pointer;
-
-  /* smooth rounded edge */
-  border-radius: 50%;
-  padding: 6px;
-
-  /* glass / smooth look */
-  background: rgba(0, 255, 160, 0.12);
-  backdrop-filter: blur(6px);
-
-  /* animation */
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.25s ease,
-    background-color 0.25s ease;
+.kpi-tile {
+  background: linear-gradient(180deg, #4a5f6b, #3a4d57);
+  border-radius: 16px;
+  padding: 18px 26px;
+  min-width: 220px;
+  text-align: center;
 }
 
-.back-icon:hover {
-  transform: scale(1.08);
-  background: rgba(0, 255, 160, 0.22);
-  box-shadow:
-    0 0 14px rgba(0, 255, 160, 0.45),
-    inset 0 0 0 1px rgba(255,255,255,0.35);
+.kpi-title {
+  font-size: 13px;
+  opacity: 0.8;
 }
 
-.back-icon:active {
-  transform: scale(0.96);
+.kpi-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: #7fffd4;
 }
 
-</style>
+.kpi-unit {
+  font-size: 12px;
+  opacity: 0.7;
+}
 
+.chart-card {
+  background: #445862;
+  border-radius: 16px;
+  padding: 14px 18px 18px;
+  margin-bottom: 22px;
+  height: 260px;
+}
 
-<style scoped>
-.top-left {
+.chart-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.back-icon {
-  width: 34px;
-  cursor: pointer;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-/* BACK BUTTON ICON */
-.back-icon {
-  width: 38px;
-  height: 38px;
-  cursor: pointer;
-
-  /* smooth rounded edge */
-  border-radius: 50%;
-  padding: 6px;
-
-  /* glass / smooth look */
-  background: rgba(0, 255, 160, 0.12);
-  backdrop-filter: blur(6px);
-
-  /* animation */
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.25s ease,
-    background-color 0.25s ease;
+.badge {
+  background: #2b6f85;
+  padding: 4px 10px;
+  border-radius: 12px;
 }
-
-.back-icon:hover {
-  transform: scale(1.08);
-  background: rgba(0, 255, 160, 0.22);
-  box-shadow:
-    0 0 14px rgba(0, 255, 160, 0.45),
-    inset 0 0 0 1px rgba(255,255,255,0.35);
-}
-
-.back-icon:active {
-  transform: scale(0.96);
-}
-
 </style>

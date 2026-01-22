@@ -113,123 +113,8 @@
   </div>
 </template>
 
-<!-- <script>
-import { io } from "socket.io-client";
-import { Line } from "vue-chartjs";
-import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend
-} from "chart.js";
-
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
-
-export default {
-  name: "Layer2",
-  components: { Line },
-
-  data() {
-    return {
-      currentDate: "",
-      currentTime: "",
-      socket: null,
-      speed: 0,
-      yieldVal: 0,
-      ampere: 0,
-      meltPressureTrend: [],
-      meltTemperatureTrend: [],
-      thicknessSetTrend: [],
-      thicknessActualTrend: []
-    };
-  },
-
-  mounted() {
-    this.updateClock();
-    setInterval(this.updateClock, 1000);
-
-    this.socket = io("http://localhost:5000", { transports: ["websocket"] });
-
-    this.socket.on("telemetry_update", (data) => {
-      const layer = data.layer2 ?? data;
-
-      if (layer.speed_trend?.actual?.length) {
-        this.speed = layer.speed_trend.actual.at(-1).y;
-      }
-
-      this.yieldVal = layer.total_actual_output ?? this.yieldVal;
-      this.ampere = Math.round(Math.random() * 20 + 45);
-
-      this.meltPressureTrend = layer.map_profile ?? [];
-      this.meltTemperatureTrend = layer.ibc_temp?.in ?? [];
-      this.thicknessSetTrend = layer.speed_trend?.set ?? [];
-      this.thicknessActualTrend = layer.speed_trend?.actual ?? [];
-    });
-  },
-
-  beforeUnmount() {
-    this.socket?.disconnect();
-  },
-
-  methods: {
-    navigate(path) {
-      if (this.$route.path !== path) this.$router.push(path);
-    },
-    goBack() {
-      this.$router.push("/dashboard");
-    },
-    isActive(path) {
-      return this.$route.path === path;
-    },
-    updateClock() {
-      const d = new Date();
-      this.currentDate = d.toLocaleDateString("en-GB");
-      this.currentTime = d.toLocaleTimeString("en-US");
-    }
-  },
-
-  computed: {
-    meltPressureChartData() {
-      return {
-        labels: this.meltPressureTrend.map(p => p.x),
-        datasets: [{ data: this.meltPressureTrend.map(p => p.y), borderColor: "#7fdcff", tension: 0.35, pointRadius: 2 }]
-      };
-    },
-    meltTemperatureChartData() {
-      return {
-        labels: this.meltTemperatureTrend.map(p => p.x),
-        datasets: [{ data: this.meltTemperatureTrend.map(p => p.y), borderColor: "#ffb74d", tension: 0.35, pointRadius: 2 }]
-      };
-    },
-    thicknessChartData() {
-      const labels = this.thicknessActualTrend.map(p => p.x);
-      const setVal = this.thicknessSetTrend.at(-1)?.y ?? 18;
-      return {
-        labels,
-        datasets: [
-          { data: this.thicknessActualTrend.map(p => p.y), borderColor: "#ff7043", tension: 0.3, pointRadius: 2 },
-          { data: labels.map(() => setVal), borderColor: "#4dd0e1", borderDash: [6, 4], pointRadius: 0 }
-        ]
-      };
-    },
-    chartOptions() {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        scales: { x: { title: { display: true, text: "Time" } }, y: { title: { display: true, text: "Value" } } }
-      };
-    }
-  }
-};
-</script> -->
-
-
 <script>
-import { io } from "socket.io-client";
+import socket from "@/services/socket";
 import { Line } from "vue-chartjs";
 import {
   Chart as ChartJS,
@@ -259,7 +144,6 @@ export default {
     return {
       currentDate: "",
       currentTime: "",
-      socket: null,
 
       /* ===== KPIs ===== */
       speed: 0,
@@ -278,11 +162,7 @@ export default {
     this.updateClock();
     setInterval(this.updateClock, 1000);
 
-    this.socket = io("http://localhost:5000", {
-      transports: ["websocket"]
-    });
-
-    this.socket.on("telemetry_update", (data) => {
+    socket.on("telemetry_update", (data) => {
       const layer = data.layer_data?.layer2;
       const trends = data.layer_trends?.layer2;
 
@@ -299,7 +179,7 @@ export default {
         second: "2-digit"
       });
 
-      /* ===== GRAPHS (WITH TIMESTAMP) ===== */
+      /* ===== GRAPHS (TIMESTAMPED) ===== */
       this.meltPressureTrend = trends.melt_pressure.map(v => ({
         x: now,
         y: v
@@ -323,10 +203,7 @@ export default {
   },
 
   beforeUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
+    socket.off("telemetry_update");
   },
 
   methods: {
@@ -426,7 +303,7 @@ export default {
           x: {
             title: {
               display: true,
-              text: "Time ",
+              text: "Time",
               color: "#e6f7fb"
             },
             ticks: { color: "#cfefff" }
@@ -445,6 +322,8 @@ export default {
   }
 };
 </script>
+
+
 
 
 <style scoped>

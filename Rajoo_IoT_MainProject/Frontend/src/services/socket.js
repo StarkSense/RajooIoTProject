@@ -14,26 +14,84 @@
 
 
 // src/services/socket.js
+
+// ----------------------------------------------------------
+
+
+// import { io } from "socket.io-client";
+
+// const socket = io("http://localhost:5000", {
+//   autoConnect: true,
+//   reconnection: true,
+//   reconnectionAttempts: Infinity,
+//   reconnectionDelay: 1000
+// });
+
+// socket.on("connect", () => {
+//   console.log("Socket connected to backend:", socket.id);
+// });
+
+// socket.on("disconnect", () => {
+//   console.log(" Socket disconnected");
+// });
+
+// socket.on("connect_error", (err) => {
+//   console.error(" Socket connection error:", err.message);
+// });
+
+// export default socket;
+
+
+
+// -------------------------------------------------------------------------
+// import { io } from "socket.io-client";
+
+// const socket = io("http://localhost:5000", {
+//   transports: ["polling"],     
+//   autoConnect: true,
+//   reconnection: true,
+//   reconnectionAttempts: Infinity,
+//   reconnectionDelay: 1000,
+//   timeout: 20000
+// });
+
+// socket.on("connect", () => {
+//   console.log("Socket connected to backend:", socket.id);
+// });
+
+// socket.on("disconnect", (reason) => {
+//   console.log("Socket disconnected:", reason);
+// });
+
+// socket.on("connect_error", (err) => {
+//   console.error("Socket connection error:", err.message);
+// });
+
+// export default socket;
+
+
+
 import { io } from "socket.io-client";
 
 const socket = io("http://localhost:5000", {
+  transports: ["polling"],   // 🔒 FORCE POLLING
   autoConnect: true,
   reconnection: true,
   reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000
+  reconnectionDelay: 1000,
+  timeout: 20000
 });
 
 socket.on("connect", () => {
-  console.log("Socket connected to backend:", socket.id);
+  console.log("Socket connected:", socket.id);
 });
 
-socket.on("disconnect", () => {
-  console.log(" Socket disconnected");
+socket.on("disconnect", (reason) => {
+  console.log("Socket disconnected:", reason);
 });
 
 socket.on("connect_error", (err) => {
-  console.error(" Socket connection error:", err.message);
+  console.error("Socket error:", err.message);
 });
 
 export default socket;
-
