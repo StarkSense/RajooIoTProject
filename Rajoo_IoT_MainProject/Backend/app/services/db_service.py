@@ -66,15 +66,27 @@ def insert_machine_overview(data):
     conn.close()
 
 
+from datetime import datetime  
+
+
 def insert_timeseries(tag, value, index_no=None):
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("""
-        INSERT INTO machine_timeseries (tag, value, index_no)
-        VALUES (?, ?, ?)
-    """, (tag, value, index_no))
+        INSERT INTO machine_timeseries (tag, value, index_no, timestamp)
+        VALUES (?, ?, ?, ?)
+    """, (
+        tag,
+        value,
+        index_no,
+        datetime.now().isoformat(timespec="milliseconds")
+
+    ))
+
     conn.commit()
     conn.close()
+
 
 
 # =========================================================
@@ -122,6 +134,29 @@ def fetch_series(tag, limit=30):
 
     # Old → New (for charts)
     return [r["value"] for r in rows[::-1]]
+
+
+from datetime import datetime, timedelta
+
+
+def fetch_series_with_step(tag, step_seconds, limit=30):
+    """
+    Returns time-aware series for charts
+    Uses backend clock + known interval
+    Does NOT rely on DB timestamps
+    """
+    values = fetch_series(tag, limit)
+
+    now = datetime.now()
+    start = now - timedelta(seconds=step_seconds * (len(values) - 1))
+
+    return [
+        {
+            "x": (start + timedelta(seconds=i * step_seconds)).isoformat(timespec="seconds"),
+            "y": v
+        }
+        for i, v in enumerate(values)
+    ]
 
 
 # =========================================================
@@ -234,11 +269,100 @@ def fetch_layer_trends(layer_id, limit=30):
 # =========================================================
 # FETCH – WINDER GRAPHS
 # =========================================================
+# def fetch_winder_trends(winder_id, limit=30):
+#     """
+#     Returns graph data for a single winder
+#     """
+#     return {
+#         "roll_length": fetch_series(f"winder_{winder_id}_roll_length", limit),
+#         "roll_dia": fetch_series(f"winder_{winder_id}_roll_dia", limit),
+#     }
+
+
 def fetch_winder_trends(winder_id, limit=30):
     """
     Returns graph data for a single winder
+    GUARANTEES minimum 2 points for Chart.js
     """
+    roll_length = fetch_series(f"winder_{winder_id}_roll_length", limit)
+    roll_dia = fetch_series(f"winder_{winder_id}_roll_dia", limit)
+
+  
+    if len(roll_length) == 0:
+        roll_length = [0, 1]
+    elif len(roll_length) == 1:
+        roll_length = [roll_length[0] - 1, roll_length[0]]
+
+    if len(roll_dia) == 0:
+        roll_dia = [0, 1]
+    elif len(roll_dia) == 1:
+        roll_dia = [roll_dia[0] - 1, roll_dia[0]]
+
     return {
-        "roll_length": fetch_series(f"winder_{winder_id}_roll_length", limit),
-        "roll_dia": fetch_series(f"winder_{winder_id}_roll_dia", limit),
+        "roll_length": roll_length,
+        "roll_dia": roll_dia,
     }
+
+
+# =========================================================
+# EXTRUDER HELPERS 
+# =========================================================
+
+EXTRUDER_MATERIAL_COLORS = {
+    "F18010": "#ff9f1c",
+    "LD": "#1e90ff",
+    "F19010": "#2ecc71",
+    "PPA705": "#e74c3c",
+    "MLLD": "#9b59b6"
+}
+
+EXTRUDER_ZONES = ["BZ-1", "BZ-3", "ADP", "AD1"]
+
+
+def fetch_extruder_materials_ui(extruder_id):
+    """
+    Returns extruder material data exactly as frontend expects
+    """
+    materials = {}
+
+    for mat, color in EXTRUDER_MATERIAL_COLORS.items():
+        materials[mat] = {
+            "set": fetch_latest_value(
+                f"extruder_{extruder_id}_material_{mat}_set_pct"
+            ),
+            "act": fetch_latest_value(
+                f"extruder_{extruder_id}_material_{mat}_act_pct"
+            ),
+            "setKg": fetch_latest_value(
+                f"extruder_{extruder_id}_material_{mat}_set_kg"
+            ),
+            "actKg": fetch_latest_value(
+                f"extruder_{extruder_id}_material_{mat}_act_kg"
+            ),
+            "density": fetch_latest_value(
+                f"extruder_{extruder_id}_material_{mat}_density"
+            ),
+            "color": color
+        }
+
+    return materials
+
+
+def fetch_extruder_temperature_ui(extruder_id):
+    """
+    Returns extruder temperature zones exactly as frontend expects
+    """
+    return [
+        {
+            "zone": zone,
+            "set": fetch_latest_value(
+                f"extruder_{extruder_id}_temp_{zone}_set"
+            ),
+            "act": fetch_latest_value(
+                f"extruder_{extruder_id}_temp_{zone}_act"
+            )
+        }
+        for zone in EXTRUDER_ZONES
+    ]
+
+
