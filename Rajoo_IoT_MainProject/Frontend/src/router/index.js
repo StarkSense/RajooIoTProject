@@ -76,7 +76,7 @@ router.beforeEach((to, from, next) => {
   // default animation for all routes
   to.meta.transition = "fade";
 
-  // any non-dashboard → dashboard = slide-back (right)
+ 
   const isReturningToDashboard =
     to.path === "/dashboard" &&
     from.path !== "/" &&
