@@ -15,9 +15,9 @@
 
       <div class="menu-section">
         <div class="menu-title">EXTRUDER</div>
-        <button class="menu-item" @click="navigate('/extruder1')">Extruder 1</button>
-        <button class="menu-item" @click="navigate('/extruder2')">Extruder 2</button>
-        <button class="menu-item" @click="navigate('/extruder3')">Extruder 3</button>
+        <button class="menu-item" @click="navigate('/extruder1')">Extruder A</button>
+        <button class="menu-item" @click="navigate('/extruder2')">Extruder B</button>
+        <button class="menu-item" @click="navigate('/extruder3')">Extruder C</button>
       </div>
 
       <div class="menu-section">
@@ -49,7 +49,6 @@
       </header>
 
       <div class="content">
-        <!-- ================= LEFT PANEL ================= -->
         <section class="panel left-panel">
           <h2>LAYER 2</h2>
 
@@ -60,14 +59,20 @@
           </div>
 
           <div class="dual-graph-row">
+
             <!-- MELT PRESSURE -->
             <div class="row graph-row tall-graph">
               <div class="graph-header">
                 <div class="graph-title">MELT PRESSURE</div>
                 <div class="inline-value pressure">
-                  {{ meltPressureTrend.length ? meltPressureTrend[meltPressureTrend.length - 1].y.toFixed(2) : "0.00" }} Bar
+                  {{
+                    meltPressureTrend.length
+                      ? meltPressureTrend[meltPressureTrend.length - 1].y.toFixed(2)
+                      : "0.00"
+                  }} Bar
                 </div>
               </div>
+
               <div class="graph-placeholder">
                 <Line :data="meltPressureChartData" :options="chartOptions" />
               </div>
@@ -86,17 +91,22 @@
               <div class="graph-header">
                 <div class="graph-title">MELT TEMPERATURE</div>
                 <div class="inline-value temperature">
-                  {{ meltTemperatureTrend.length ? meltTemperatureTrend[meltTemperatureTrend.length - 1].y.toFixed(1) : "0" }} °C
+                  {{
+                    meltTemperatureTrend.length
+                      ? meltTemperatureTrend[meltTemperatureTrend.length - 1].y.toFixed(1)
+                      : "0"
+                  }} °C
                 </div>
               </div>
+
               <div class="graph-placeholder">
                 <Line :data="meltTemperatureChartData" :options="chartOptions" />
               </div>
             </div>
+
           </div>
         </section>
 
-        <!-- ================= RIGHT PANEL ================= -->
         <section class="panel right-panel">
           <h2>OVERALL EQUIPMENT EFFICIENCY</h2>
           <div class="oee-grid">
@@ -125,15 +135,16 @@ import {
   Tooltip,
   Legend
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-/* ================= REGISTER CHART.JS ================= */
 ChartJS.register(
   LineElement,
   PointElement,
   LinearScale,
   CategoryScale,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 export default {
@@ -145,12 +156,10 @@ export default {
       currentDate: "",
       currentTime: "",
 
-      /* ===== KPIs ===== */
       speed: 0,
       yieldVal: 0,
       ampere: 0,
 
-      /* ===== GRAPHS ===== */
       meltPressureTrend: [],
       meltTemperatureTrend: [],
       thicknessSetTrend: [],
@@ -165,40 +174,37 @@ export default {
     socket.on("telemetry_update", (data) => {
       const layer = data.layer_data?.layer2;
       const trends = data.layer_trends?.layer2;
-
       if (!layer || !trends) return;
 
-      /* ===== KPIs ===== */
       this.speed = layer.speed ?? this.speed;
       this.yieldVal = layer.yield ?? this.yieldVal;
       this.ampere = layer.ampere ?? this.ampere;
 
-      const now = new Date().toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      });
+      const now = new Date();
+      const intervalSeconds = 10;
 
-      /* ===== GRAPHS (TIMESTAMPED) ===== */
-      this.meltPressureTrend = trends.melt_pressure.map(v => ({
-        x: now,
-        y: v
-      }));
+      const buildTimedSeries = (values) => {
+        if (!values || values.length === 0) return [];
+        const start = new Date(
+          now.getTime() - (values.length - 1) * intervalSeconds * 1000
+        );
+        return values.map((v, i) => {
+          const t = new Date(start.getTime() + i * intervalSeconds * 1000);
+          return {
+            x: t.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            }),
+            y: v
+          };
+        });
+      };
 
-      this.meltTemperatureTrend = trends.melt_temperature.map(v => ({
-        x: now,
-        y: v
-      }));
-
-      this.thicknessSetTrend = trends.thickness_set.map(v => ({
-        x: now,
-        y: v
-      }));
-
-      this.thicknessActualTrend = trends.thickness_actual.map(v => ({
-        x: now,
-        y: v
-      }));
+      this.meltPressureTrend = buildTimedSeries(trends.melt_pressure);
+      this.meltTemperatureTrend = buildTimedSeries(trends.melt_temperature);
+      this.thicknessSetTrend = buildTimedSeries(trends.thickness_set);
+      this.thicknessActualTrend = buildTimedSeries(trends.thickness_actual);
     });
   },
 
@@ -208,19 +214,14 @@ export default {
 
   methods: {
     navigate(path) {
-      if (this.$route.path !== path) {
-        this.$router.push(path);
-      }
+      if (this.$route.path !== path) this.$router.push(path);
     },
-
     goBack() {
       this.$router.push("/dashboard");
     },
-
     isActive(path) {
       return this.$route.path === path;
     },
-
     updateClock() {
       const d = new Date();
       this.currentDate = d.toLocaleDateString("en-GB");
@@ -241,7 +242,7 @@ export default {
           data: this.meltPressureTrend.map(p => p.y),
           borderColor: "#7fdcff",
           tension: 0.35,
-          pointRadius: 2
+          pointRadius: 3
         }]
       };
     },
@@ -254,7 +255,7 @@ export default {
           data: this.meltTemperatureTrend.map(p => p.y),
           borderColor: "#ffb74d",
           tension: 0.35,
-          pointRadius: 2
+          pointRadius: 3
         }]
       };
     },
@@ -273,7 +274,7 @@ export default {
             data: this.thicknessActualTrend.map(p => p.y),
             borderColor: "#ff7043",
             tension: 0.3,
-            pointRadius: 2
+            pointRadius: 3
           },
           {
             label: "Set Thickness",
@@ -291,30 +292,62 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+
         plugins: {
           legend: {
             labels: {
               color: "#e6f7fb",
-              font: { size: 11 }
+              font: { size: 12, weight: "600" }
+            }
+          },
+
+          datalabels: {
+            color: "#ffffff",
+            align: "top",
+            anchor: "end",
+            font: {
+              weight: "bold",
+              size: 11
+            },
+            formatter: (value, context) => {
+              const dataset =
+                context.chart.data.datasets[context.datasetIndex].data;
+              return context.dataIndex === dataset.length - 1
+                ? Number(value).toFixed(1)
+                : "";
             }
           }
         },
+
         scales: {
           x: {
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            },
+            ticks: {
+              color: "#cfefff",
+              font: { size: 11 }
+            },
             title: {
               display: true,
               text: "Time",
               color: "#e6f7fb"
-            },
-            ticks: { color: "#cfefff" }
+            }
           },
+
           y: {
+            grid: {
+              color: "rgba(255,255,255,0.12)"
+            },
+            ticks: {
+              color: "#cfefff",
+              font: { size: 11 }
+            },
             title: {
               display: true,
               text: "Value",
               color: "#e6f7fb"
-            },
-            ticks: { color: "#cfefff" }
+            }
           }
         }
       };
@@ -322,7 +355,6 @@ export default {
   }
 };
 </script>
-
 
 
 
@@ -504,7 +536,7 @@ export default {
 
 /* ================= INLINE LIVE VALUE ================= */
 
-.inline-value {
+.inline-value {   
   padding: 3px 10px;
   border-radius: 10px;
   font-size: 12px;
@@ -528,7 +560,3 @@ export default {
   background: rgba(255, 183, 77, 0.16);
 }
 </style>
-
-
-
-

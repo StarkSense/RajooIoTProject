@@ -1,5 +1,3 @@
-
-
 <template>
   <div class="app">
     <!-- ================= SIDEBAR ================= -->
@@ -17,9 +15,9 @@
 
       <div class="menu-section">
         <div class="menu-title">EXTRUDER</div>
-        <button class="menu-item" @click="navigate('/extruder1')">Extruder 1</button>
-        <button class="menu-item" @click="navigate('/extruder2')">Extruder 2</button>
-        <button class="menu-item" @click="navigate('/extruder3')">Extruder 3</button>
+        <button class="menu-item" @click="navigate('/extruder1')">Extruder A</button>
+        <button class="menu-item" @click="navigate('/extruder2')">Extruder B</button>
+        <button class="menu-item" @click="navigate('/extruder3')">Extruder C</button>
       </div>
 
       <div class="menu-section">
@@ -131,7 +129,6 @@
 </template>
 
 
-
 <script>
 import socket from "@/services/socket";
 import { Line } from "vue-chartjs";
@@ -144,6 +141,7 @@ import {
   Tooltip,
   Legend
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
 /* ================= REGISTER CHART.JS ================= */
 ChartJS.register(
@@ -152,7 +150,8 @@ ChartJS.register(
   LinearScale,
   CategoryScale,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels   // 👈 Enables value labels
 );
 
 export default {
@@ -192,32 +191,35 @@ export default {
       this.yieldVal = layer.yield ?? this.yieldVal;
       this.ampere = layer.ampere ?? this.ampere;
 
-      const now = new Date().toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      });
+      /* ===== TIMESTAMP BUILD ===== */
+      const now = new Date();
+      const intervalSeconds = 10; // MUST match backend
 
-      /* ===== GRAPHS (TIMESTAMPED) ===== */
-      this.meltPressureTrend = trends.melt_pressure.map(v => ({
-        x: now,
-        y: v
-      }));
+      const buildTimedSeries = (values) => {
+        if (!values || values.length === 0) return [];
 
-      this.meltTemperatureTrend = trends.melt_temperature.map(v => ({
-        x: now,
-        y: v
-      }));
+        const start = new Date(
+          now.getTime() - (values.length - 1) * intervalSeconds * 1000
+        );
 
-      this.thicknessSetTrend = trends.thickness_set.map(v => ({
-        x: now,
-        y: v
-      }));
+        return values.map((v, i) => {
+          const t = new Date(start.getTime() + i * intervalSeconds * 1000);
 
-      this.thicknessActualTrend = trends.thickness_actual.map(v => ({
-        x: now,
-        y: v
-      }));
+          return {
+            x: t.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            }),
+            y: v
+          };
+        });
+      };
+
+      this.meltPressureTrend = buildTimedSeries(trends.melt_pressure);
+      this.meltTemperatureTrend = buildTimedSeries(trends.melt_temperature);
+      this.thicknessSetTrend = buildTimedSeries(trends.thickness_set);
+      this.thicknessActualTrend = buildTimedSeries(trends.thickness_actual);
     });
   },
 
@@ -260,7 +262,7 @@ export default {
           data: this.meltPressureTrend.map(p => p.y),
           borderColor: "#7fdcff",
           tension: 0.35,
-          pointRadius: 2
+          pointRadius: 3
         }]
       };
     },
@@ -273,7 +275,7 @@ export default {
           data: this.meltTemperatureTrend.map(p => p.y),
           borderColor: "#ffb74d",
           tension: 0.35,
-          pointRadius: 2
+          pointRadius: 3
         }]
       };
     },
@@ -292,7 +294,7 @@ export default {
             data: this.thicknessActualTrend.map(p => p.y),
             borderColor: "#ff7043",
             tension: 0.3,
-            pointRadius: 2
+            pointRadius: 3
           },
           {
             label: "Set Thickness",
@@ -316,8 +318,26 @@ export default {
               color: "#e6f7fb",
               font: { size: 11 }
             }
+          },
+
+          /* 🔥 DATA LABELS */
+          datalabels: {
+            color: "#ffffff",
+            align: "top",
+            anchor: "end",
+            font: {
+              weight: "bold",
+              size: 10
+            },
+            formatter: (value, context) => {
+              const dataset = context.chart.data.datasets[0].data;
+              return context.dataIndex === dataset.length - 1
+                ? Number(value).toFixed(1)
+                : "";
+            }
           }
         },
+
         scales: {
           x: {
             title: {
@@ -341,8 +361,6 @@ export default {
   }
 };
 </script>
-
-
 
 
 <style scoped>
@@ -523,7 +541,7 @@ export default {
 
 /* ================= INLINE LIVE VALUE ================= */
 
-.inline-value {
+.inline-value {   
   padding: 3px 10px;
   border-radius: 10px;
   font-size: 12px;

@@ -28,9 +28,9 @@
 
       <div class="menu-section">
         <div class="menu-title">EXTRUDER</div>
-        <button class="menu-item" @click="navigate('/extruder1')">Extruder 1</button>
-        <button class="menu-item" @click="navigate('/extruder2')">Extruder 2</button>
-        <button class="menu-item" @click="navigate('/extruder3')">Extruder 3</button>
+        <button class="menu-item" @click="navigate('/extruder1')">Extruder A</button>
+        <button class="menu-item" @click="navigate('/extruder2')">Extruder B</button>
+        <button class="menu-item" @click="navigate('/extruder3')">Extruder C</button>
       </div>
 
       <div class="menu-section">

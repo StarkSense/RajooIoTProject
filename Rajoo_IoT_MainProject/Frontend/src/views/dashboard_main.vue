@@ -15,9 +15,9 @@
 
       <div class="menu-section">
         <div class="menu-title">EXTRUDER</div>
-        <button class="menu-item" :class="{ active: isActive('/extruder1') }" @click="goTo('/extruder1')">Extruder 1</button>
-        <button class="menu-item" :class="{ active: isActive('/extruder2') }" @click="goTo('/extruder2')">Extruder 2</button>
-        <button class="menu-item" :class="{ active: isActive('/extruder3') }" @click="goTo('/extruder3')">Extruder 3</button>
+        <button class="menu-item" :class="{ active: isActive('/extruder1') }" @click="goTo('/extruder1')">Extruder A</button>
+        <button class="menu-item" :class="{ active: isActive('/extruder2') }" @click="goTo('/extruder2')">Extruder B</button>
+        <button class="menu-item" :class="{ active: isActive('/extruder3') }" @click="goTo('/extruder3')">Extruder C</button>
       </div>
 
       <div class="menu-section">

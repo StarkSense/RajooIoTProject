@@ -1,54 +1,118 @@
 <template>
-  <section class="panel full-panel">
-    <h2>WINDER 1</h2>
-
-    <!-- ================= KPI ROW ================= -->
-    <div class="kpi-row">
-      <div class="kpi-tile">
-        <div class="kpi-title">TOTALIZER</div>
-        <div class="kpi-value">{{ winder.totalizer }}</div>
-        <div class="kpi-unit">m</div>
+  <div class="app">
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+      <div class="avatar">
+        <img src="/user-icon.png" />
       </div>
 
-      <div class="kpi-tile">
-        <div class="kpi-title">ROLL LENGTH</div>
-        <div class="kpi-value">{{ latestRollLength }}</div>
-        <div class="kpi-unit">m</div>
+      <div class="menu-section">
+        <div class="menu-title">LAYERS</div>
+        <button class="menu-item" @click="navigate('/layer1')">Layer 1</button>
+        <button class="menu-item" @click="navigate('/layer2')">Layer 2</button>
+        <button class="menu-item" @click="navigate('/layer3')">Layer 3</button>
       </div>
 
-      <div class="kpi-tile">
-        <div class="kpi-title">ROLL DIAMETER</div>
-        <div class="kpi-value">{{ latestRollDia }}</div>
-        <div class="kpi-unit">mm</div>
+      <div class="menu-section">
+        <div class="menu-title">EXTRUDER</div>
+        <button class="menu-item" @click="navigate('/extruder1')">Extruder A</button>
+        <button class="menu-item" @click="navigate('/extruder2')">Extruder B</button>
+        <button class="menu-item" @click="navigate('/extruder3')">Extruder C</button>
       </div>
-    </div>
 
-    <!-- ================= ROLL LENGTH ================= -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <span>ROLL LENGTH</span>
-        <span class="badge">{{ latestRollLength }} m</span>
+      <div class="menu-section">
+        <div class="menu-title">WINDER</div>
+        <button class="menu-item active">Winder 1</button>
+        <button class="menu-item" @click="navigate('/winder2')">Winder 2</button>
       </div>
-      <canvas ref="rollLengthChart"></canvas>
-    </div>
 
-    <!-- ================= ROLL DIAMETER ================= -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <span>ROLL DIAMETER</span>
-        <span class="badge">{{ latestRollDia }} mm</span>
+      <div class="menu-section">
+        <div class="menu-title">UTILITIES</div>
+        <button class="menu-item" @click="navigate('/reports')">Reports</button>
+        <button class="menu-item" @click="navigate('/material-utilization')">
+          Material Utilization
+        </button>
       </div>
-      <canvas ref="rollDiaChart"></canvas>
-    </div>
-  </section>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <img src="/back-arrow.png" class="back-icon" @click="goBack" />
+          <h1>THREE LAYER BLOWN FILM LINE</h1>
+        </div>
+
+        <div class="top-right">
+          <span class="pill dark">
+            {{ currentDate }}<br />{{ currentTime }}
+          </span>
+          <img src="/notification.png" class="notification-icon" />
+          <img src="/power-button.png" class="power-icon" />
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="panel left-panel">
+          <h2>WINDER 1</h2>
+
+          <div class="stats centered">
+            <div class="kpi-outer">
+              <div class="kpi-inner">
+                <div class="kpi-title">TOTALIZER</div>
+                <div class="kpi-value">
+                  {{ totalizer }} <span class="kpi-unit">m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="graph-section">
+            <div class="graph-header">
+              <span>ROLL LENGTH</span>
+              <span class="badge">{{ rollLengthLatest }} m</span>
+            </div>
+            <div class="graph-card">
+              <canvas ref="rollLengthChart"></canvas>
+            </div>
+          </div>
+
+          <div class="graph-section">
+            <div class="graph-header">
+              <span>ROLL DIAMETER</span>
+              <span class="badge">{{ rollDiaLatest }} mm</span>
+            </div>
+            <div class="graph-card">
+              <canvas ref="rollDiaChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel right-panel">
+          <h2>OVERALL EQUIPMENT EFFICIENCY</h2>
+          <div class="oee-grid">
+            <div class="oee-box">OEE <span>72%</span></div>
+            <div class="oee-box">Availability <span>87%</span></div>
+            <div class="oee-box">Performance <span>81%</span></div>
+            <div class="oee-box">Quality <span>94%</span></div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">MODEL : RFC-2550-40-1800</footer>
+    </main>
+  </div>
 </template>
 
-<script>
+
+
+
+<!-- <script>
+import socket from "@/services/socket";
 import {
   Chart,
   LineController,
   LineElement,
-  PointElement,
   LinearScale,
   CategoryScale,
   Tooltip,
@@ -58,132 +122,760 @@ import {
 Chart.register(
   LineController,
   LineElement,
-  PointElement,
   LinearScale,
   CategoryScale,
   Tooltip,
   Legend
 );
 
+const MAX_POINTS = 30;
+const CHART_INTERVAL = 3000; // ms
+let lastChartUpdate = 0;
+
 export default {
   name: "Winder1",
 
   data() {
     return {
-      winder: {
-        totalizer: 0,
-        rollLength: [],
-        rollDia: []
-      },
-      rollLengthChart: null,
-      rollDiaChart: null
+      // 🔹 reactive ONLY for KPIs & UI
+      totalizer: 0,
+      rollLengthLatest: 0,
+      rollDiaLatest: 0,
+      currentDate: "",
+      currentTime: ""
     };
   },
 
-  computed: {
-    latestRollLength() {
-      return this.winder.rollLength.at(-1) || 0;
-    },
-    latestRollDia() {
-      return this.winder.rollDia.at(-1) || 0;
-    }
+  mounted() {
+    // ---------- CLOCK ----------
+    this.updateClock();
+    this._clockTimer = setInterval(this.updateClock, 1000);
+
+    // ---------- NON-REACTIVE CHART STATE ----------
+    this._lengthLabels = [];
+    this._lengthData = [];
+    this._diaLabels = [];
+    this._diaData = [];
+
+    // ---------- CREATE CHARTS ONCE ----------
+    this.createCharts();
+
+    // ---------- SINGLE SOCKET LISTENER ----------
+    socket.off("telemetry_update");
+    socket.on("telemetry_update", this.onTelemetry);
   },
 
-  mounted() {
-    this.initCharts();
+  beforeUnmount() {
+    clearInterval(this._clockTimer);
+    socket.off("telemetry_update");
 
-    this.$socket.on("telemetry_update", (payload) => {
-      const w = payload?.winder_data?.winder1;
-      const t = payload?.winder_trends?.winder1;
-
-      if (w) this.winder.totalizer = w.totalizer;
-      if (t) {
-        this.winder.rollLength = t.roll_length || [];
-        this.winder.rollDia = t.roll_dia || [];
-        this.updateCharts();
-      }
-    });
+    this.rollLengthChart?.destroy();
+    this.rollDiaChart?.destroy();
   },
 
   methods: {
-    initCharts() {
-      this.rollLengthChart = this.createChart(
-        this.$refs.rollLengthChart,
-        "Roll Length (m)",
-        "#5eead4"
-      );
-
-      this.rollDiaChart = this.createChart(
-        this.$refs.rollDiaChart,
-        "Roll Diameter (mm)",
-        "#60a5fa"
-      );
+    // ---------- NAV ----------
+    navigate(path) {
+      this.$router.push(path);
     },
 
-    createChart(canvas, label, color) {
-      return new Chart(canvas, {
+    goBack() {
+      this.$router.push("/dashboard");
+    },
+
+    // ---------- CLOCK ----------
+    updateClock() {
+      const d = new Date();
+      this.currentDate = d.toLocaleDateString("en-GB");
+      this.currentTime = d.toLocaleTimeString("en-GB");
+    },
+
+    // ---------- SOCKET HANDLER ----------
+    onTelemetry(payload) {
+      const w = payload?.winder_data?.winder1;
+      const t = payload?.winder_trends?.winder1;
+      if (!w || !t) return;
+
+      // ✅ KPIs (safe to be reactive)
+      this.totalizer = w.totalizer;
+      this.rollLengthLatest = t.roll_length?.at(-1);
+      this.rollDiaLatest = t.roll_dia?.at(-1);
+
+      if (this.rollLengthLatest == null || this.rollDiaLatest == null) return;
+
+      // ---------- THROTTLE CHARTS ----------
+      const now = Date.now();
+      if (now - lastChartUpdate < CHART_INTERVAL) return;
+      lastChartUpdate = now;
+
+      const time = new Date().toLocaleTimeString("en-GB");
+
+      // ---------- PURE JS (NO VUE REACTIVITY) ----------
+      this._lengthLabels.push(time);
+      this._lengthData.push(this.rollLengthLatest);
+      this._diaLabels.push(time);
+      this._diaData.push(this.rollDiaLatest);
+
+      if (this._lengthLabels.length > MAX_POINTS) {
+        this._lengthLabels.shift();
+        this._lengthData.shift();
+        this._diaLabels.shift();
+        this._diaData.shift();
+      }
+
+      // ---------- UPDATE CHARTS ----------
+      this.rollLengthChart.data.labels = this._lengthLabels;
+      this.rollLengthChart.data.datasets[0].data = this._lengthData;
+      this.rollLengthChart.update("none");
+
+      this.rollDiaChart.data.labels = this._diaLabels;
+      this.rollDiaChart.data.datasets[0].data = this._diaData;
+      this.rollDiaChart.update("none");
+    },
+
+    // ---------- CHART CREATION ----------
+    createCharts() {
+      this.rollLengthChart = new Chart(this.$refs.rollLengthChart, {
         type: "line",
         data: {
           labels: [],
           datasets: [
             {
-              label,
+              label: "Roll Length",
               data: [],
-              borderColor: color,
-              tension: 0.35,
-              pointRadius: 0
+              stepped: true,
+              borderColor: "#7fdcff",
+              backgroundColor: "#7fdcff33",
+              fill: true,
+              pointRadius: 0,
+              borderWidth: 2
             }
           ]
         },
         options: {
+          animation: false,
           responsive: true,
           maintainAspectRatio: false,
+          plugins: { legend: { display: true } }
+        }
+      });
+
+      this.rollDiaChart = new Chart(this.$refs.rollDiaChart, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Roll Diameter",
+              data: [],
+              stepped: true,
+              borderColor: "#4dd0e1",
+              backgroundColor: "#4dd0e133",
+              fill: true,
+              pointRadius: 0,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true } }
+        }
+      });
+    }
+  }
+};
+</script> -->
+ 
+<!-- 
+<script>
+import socket from "@/services/socket";
+import {
+  Chart,
+  LineController,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+Chart.register(
+  LineController,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
+
+const MAX_POINTS = 30;
+const CHART_INTERVAL = 3000; // ms (safe throttle)
+let lastChartUpdate = 0;
+let graphSeeded = false;
+
+export default {
+  name: "Winder1",
+
+  data() {
+    return {
+      // ===== KPIs =====
+      totalizer: 0,
+      rollLengthLatest: 0,
+      rollDiaLatest: 0,
+
+      // ===== Clock =====
+      currentDate: "",
+      currentTime: ""
+    };
+  },
+
+  mounted() {
+    // -------- Clock --------
+    this.updateClock();
+    this._clockTimer = setInterval(this.updateClock, 1000);
+
+    // -------- NON-reactive chart buffers --------
+    this._lengthLabels = [];
+    this._lengthData = [];
+    this._diaLabels = [];
+    this._diaData = [];
+
+    // -------- Create charts ONCE --------
+    this.createCharts();
+
+    // -------- Single socket listener --------
+    socket.off("telemetry_update");
+    socket.on("telemetry_update", this.onTelemetry);
+  },
+
+  beforeUnmount() {
+    clearInterval(this._clockTimer);
+    socket.off("telemetry_update");
+
+    this.rollLengthChart?.destroy();
+    this.rollDiaChart?.destroy();
+  },
+
+  methods: {
+    // ================= CLOCK =================
+    updateClock() {
+      const d = new Date();
+      this.currentDate = d.toLocaleDateString("en-GB");
+      this.currentTime = d.toLocaleTimeString("en-GB");
+    },
+
+    // ================= SOCKET HANDLER =================
+    onTelemetry(payload) {
+      const w = payload?.winder_data?.winder1;
+      const t = payload?.winder_trends?.winder1;
+      if (!w || !t) return;
+
+      // -------- KPIs (instant) --------
+      this.totalizer = w.totalizer ?? this.totalizer;
+
+      const latestLength = t.roll_length?.at(-1);
+      const latestDia = t.roll_dia?.at(-1);
+      if (latestLength == null || latestDia == null) return;
+
+      this.rollLengthLatest = latestLength;
+      this.rollDiaLatest = latestDia;
+
+      // ================= INITIAL GRAPH SEED (ONCE) =================
+      if (!graphSeeded) {
+        const lenSeries = t.roll_length.slice(-MAX_POINTS);
+        const diaSeries = t.roll_dia.slice(-MAX_POINTS);
+
+        const now = Date.now();
+        this._lengthLabels = lenSeries.map((_, i) =>
+          new Date(now - (lenSeries.length - i) * 1000)
+            .toLocaleTimeString("en-GB")
+        );
+
+        this._lengthData = [...lenSeries];
+        this._diaLabels = [...this._lengthLabels];
+        this._diaData = [...diaSeries];
+
+        this.rollLengthChart.data.labels = this._lengthLabels;
+        this.rollLengthChart.data.datasets[0].data = this._lengthData;
+
+        this.rollDiaChart.data.labels = this._diaLabels;
+        this.rollDiaChart.data.datasets[0].data = this._diaData;
+
+        this.rollLengthChart.update("none");
+        this.rollDiaChart.update("none");
+
+        graphSeeded = true;
+        return; // 🚨 important
+      }
+
+      // ================= THROTTLED LIVE UPDATE =================
+      const now = Date.now();
+      if (now - lastChartUpdate < CHART_INTERVAL) return;
+      lastChartUpdate = now;
+
+      const time = new Date().toLocaleTimeString("en-GB");
+
+      this._lengthLabels.push(time);
+      this._lengthData.push(latestLength);
+      this._diaLabels.push(time);
+      this._diaData.push(latestDia);
+
+      if (this._lengthLabels.length > MAX_POINTS) {
+        this._lengthLabels.shift();
+        this._lengthData.shift();
+        this._diaLabels.shift();
+        this._diaData.shift();
+      }
+
+      this.rollLengthChart.data.labels = this._lengthLabels;
+      this.rollLengthChart.data.datasets[0].data = this._lengthData;
+      this.rollLengthChart.update("none");
+
+      this.rollDiaChart.data.labels = this._diaLabels;
+      this.rollDiaChart.data.datasets[0].data = this._diaData;
+      this.rollDiaChart.update("none");
+    },
+
+    // ================= CHART CREATION =================
+    createCharts() {
+      this.rollLengthChart = new Chart(this.$refs.rollLengthChart, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Roll Length",
+            data: [],
+            stepped: true,
+            borderColor: "#7fdcff",
+            backgroundColor: "#7fdcff33",
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
           plugins: {
-            legend: { labels: { color: "#cbd5e1" } }
+            legend: { labels: { color: "#e6f7fb" } }
           },
           scales: {
             x: {
-              ticks: { color: "#94a3b8" },
-              grid: { color: "rgba(255,255,255,0.05)" }
+              title: {
+                display: true,
+                text: "Time",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
             },
             y: {
-              ticks: { color: "#94a3b8" },
-              grid: { color: "rgba(255,255,255,0.05)" }
+              title: {
+                display: true,
+                text: "Length (m)",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
             }
           }
         }
       });
+
+      this.rollDiaChart = new Chart(this.$refs.rollDiaChart, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Roll Diameter",
+            data: [],
+            stepped: true,
+            borderColor: "#4dd0e1",
+            backgroundColor: "#4dd0e133",
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { labels: { color: "#e6f7fb" } }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Time",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Diameter (mm)",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          }
+        }
+      });
+    }
+  }
+};
+</script> -->
+
+<script>
+import socket from "@/services/socket";
+import {
+  Chart,
+  LineController,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+Chart.register(
+  LineController,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
+
+const MAX_POINTS = 30;
+const CHART_INTERVAL = 3000; // ms throttle
+
+export default {
+  name: "Winder1",
+
+  data() {
+    return {
+      // ===== KPIs =====
+      totalizer: 0,
+      rollLengthLatest: 0,
+      rollDiaLatest: 0,
+
+      // ===== Clock =====
+      currentDate: "",
+      currentTime: "",
+
+      // ===== Internal chart state (FIXED - no globals now) =====
+      lastChartUpdate: 0,
+      graphSeeded: false,
+
+      // listener reference (FIXED freeze issue)
+      _telemetryHandler: null
+    };
+  },
+
+  mounted() {
+    // -------- Clock --------
+    this.updateClock();
+    this._clockTimer = setInterval(this.updateClock, 1000);
+
+    // -------- NON-reactive buffers --------
+    this._lengthLabels = [];
+    this._lengthData = [];
+    this._diaLabels = [];
+    this._diaData = [];
+
+    // -------- Create charts once --------
+    this.createCharts();
+
+    // -------- FIXED: remove only THIS component listener --------
+    this._telemetryHandler = this.onTelemetry;
+    socket.on("telemetry_update", this._telemetryHandler);
+  },
+
+  beforeUnmount() {
+    clearInterval(this._clockTimer);
+
+    // FIXED: remove only this handler
+    if (this._telemetryHandler) {
+      socket.off("telemetry_update", this._telemetryHandler);
+    }
+
+    this.rollLengthChart?.destroy();
+    this.rollDiaChart?.destroy();
+  },
+
+  methods: {
+
+    // ================= NAVIGATION =================
+    navigate(path) {
+      this.$router.push(path);
     },
 
-    updateCharts() {
-      this.rollLengthChart.data.labels =
-        this.winder.rollLength.map((_, i) => i + 1);
-      this.rollLengthChart.data.datasets[0].data =
-        this.winder.rollLength;
-      this.rollLengthChart.update();
+    goBack() {
+      this.$router.push("/dashboard");
+    },
 
-      this.rollDiaChart.data.labels =
-        this.winder.rollDia.map((_, i) => i + 1);
-      this.rollDiaChart.data.datasets[0].data =
-        this.winder.rollDia;
-      this.rollDiaChart.update();
+    // ================= CLOCK =================
+    updateClock() {
+      const d = new Date();
+      this.currentDate = d.toLocaleDateString("en-GB");
+      this.currentTime = d.toLocaleTimeString("en-GB");
+    },
+
+    // ================= SOCKET HANDLER =================
+    onTelemetry(payload) {
+      const w = payload?.winder_data?.winder1;
+      const t = payload?.winder_trends?.winder1;
+      if (!w || !t) return;
+
+      // -------- KPIs --------
+      this.totalizer = w.totalizer ?? this.totalizer;
+
+      const latestLength = t.roll_length?.at(-1);
+      const latestDia = t.roll_dia?.at(-1);
+      if (latestLength == null || latestDia == null) return;
+
+      this.rollLengthLatest = latestLength;
+      this.rollDiaLatest = latestDia;
+
+      // ================= INITIAL GRAPH SEED =================
+      if (!this.graphSeeded) {
+        const lenSeries = t.roll_length.slice(-MAX_POINTS);
+        const diaSeries = t.roll_dia.slice(-MAX_POINTS);
+
+        const now = Date.now();
+        this._lengthLabels = lenSeries.map((_, i) =>
+          new Date(now - (lenSeries.length - i) * 1000)
+            .toLocaleTimeString("en-GB")
+        );
+
+        this._lengthData = [...lenSeries];
+        this._diaLabels = [...this._lengthLabels];
+        this._diaData = [...diaSeries];
+
+        this.rollLengthChart.data.labels = this._lengthLabels;
+        this.rollLengthChart.data.datasets[0].data = this._lengthData;
+
+        this.rollDiaChart.data.labels = this._diaLabels;
+        this.rollDiaChart.data.datasets[0].data = this._diaData;
+
+        this.rollLengthChart.update("none");
+        this.rollDiaChart.update("none");
+
+        this.graphSeeded = true;
+        return;
+      }
+
+      // ================= THROTTLED LIVE UPDATE =================
+      const now = Date.now();
+      if (now - this.lastChartUpdate < CHART_INTERVAL) return;
+      this.lastChartUpdate = now;
+
+      const time = new Date().toLocaleTimeString("en-GB");
+
+      this._lengthLabels.push(time);
+      this._lengthData.push(latestLength);
+      this._diaLabels.push(time);
+      this._diaData.push(latestDia);
+
+      if (this._lengthLabels.length > MAX_POINTS) {
+        this._lengthLabels.shift();
+        this._lengthData.shift();
+        this._diaLabels.shift();
+        this._diaData.shift();
+      }
+
+      this.rollLengthChart.data.labels = this._lengthLabels;
+      this.rollLengthChart.data.datasets[0].data = this._lengthData;
+      this.rollLengthChart.update("none");
+
+      this.rollDiaChart.data.labels = this._diaLabels;
+      this.rollDiaChart.data.datasets[0].data = this._diaData;
+      this.rollDiaChart.update("none");
+    },
+
+    // ================= CHART CREATION =================
+    createCharts() {
+      this.rollLengthChart = new Chart(this.$refs.rollLengthChart, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Roll Length",
+            data: [],
+            stepped: true,
+            borderColor: "#7fdcff",
+            backgroundColor: "#7fdcff33",
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { labels: { color: "#e6f7fb" } }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Time",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Length (m)",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          }
+        }
+      });
+
+      this.rollDiaChart = new Chart(this.$refs.rollDiaChart, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Roll Diameter",
+            data: [],
+            stepped: true,
+            borderColor: "#4dd0e1",
+            backgroundColor: "#4dd0e133",
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { labels: { color: "#e6f7fb" } }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Time",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Diameter (mm)",
+                color: "#e6f7fb",
+                font: { size: 12, weight: "600" }
+              },
+              ticks: { color: "#cfefff" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          }
+        }
+      });
     }
   }
 };
 </script>
 
+
+
+ 
 <style scoped>
-.kpi-row {
+/* ================= HEADER / TITLE ROW ================= */
+
+.top-left,
+.page-title {
   display: flex;
-  gap: 20px;
-  margin: 20px 0 28px;
+  align-items: center;
+  gap: 12px;
 }
 
-.kpi-tile {
+.page-heading {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #e6f7fb;
+}
+
+/* ================= BACK BUTTON (UNIFIED) ================= */
+
+.back-icon {
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 6px;
+
+  /* glass effect */
+  background: rgba(0, 255, 160, 0.12);
+  backdrop-filter: blur(6px);
+
+  /* animation */
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.back-icon:hover {
+  transform: scale(1.08);
+  background: rgba(0, 255, 160, 0.22);
+  box-shadow:
+    0 0 14px rgba(0, 255, 160, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.back-icon:active {
+  transform: scale(0.96);
+}
+
+/* ================= KPI ================= */
+
+.stats.centered {
+  display: flex;
+  justify-content: center;
+}
+
+.kpi-outer {
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.kpi-inner {
+  padding: 18px 28px;
+  border-radius: 14px;
   background: linear-gradient(180deg, #4a5f6b, #3a4d57);
-  border-radius: 16px;
-  padding: 18px 26px;
-  min-width: 220px;
   text-align: center;
 }
 
@@ -193,33 +885,49 @@ export default {
 }
 
 .kpi-value {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 900;
   color: #7fffd4;
 }
 
 .kpi-unit {
-  font-size: 12px;
-  opacity: 0.7;
+  font-size: 16px;
+  margin-left: 6px;
 }
 
-.chart-card {
-  background: #445862;
-  border-radius: 16px;
-  padding: 14px 18px 18px;
-  margin-bottom: 22px;
-  height: 260px;
+/* ================= GRAPHS ================= */
+
+.graph-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
 }
 
-.chart-header {
+.graph-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  font-size: 13px;
 }
 
 .badge {
-  background: #2b6f85;
+  background: rgba(255, 255, 255, 0.2);
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: 10px;
 }
-</style>
+
+.graph-card {
+  height: 240px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.graph-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+</style> 
+
+
+
